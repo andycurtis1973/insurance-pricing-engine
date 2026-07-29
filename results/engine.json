@@ -1,0 +1,84 @@
+{
+  "escale": 1.0,
+  "n_test": 28544,
+  "arc_elasticities": {
+    "price_driven": -2.1,
+    "balanced": -1.22,
+    "coverage_driven": -0.53
+  },
+  "strategies": {
+    "compete_on_price": {
+      "rev_per_shopper": 400.74,
+      "conversion": 0.65,
+      "avg_premium_offered": 616.53
+    },
+    "blanket_upsell": {
+      "rev_per_shopper": 423.7,
+      "conversion": 0.6634,
+      "avg_premium_offered": 639.32
+    },
+    "engine": {
+      "rev_per_shopper": 427.48,
+      "conversion": 0.6722,
+      "avg_premium_offered": 635.92
+    }
+  },
+  "engine_lift_vs_compete_pct": 6.67,
+  "engine_lift_vs_upsell_pct": 0.89,
+  "by_segment": {
+    "price_driven": {
+      "n": 6733,
+      "engine_rev": 408.83,
+      "compete_rev": 408.59,
+      "lift_pct": 0.06,
+      "traded_up_pct": 13.2
+    },
+    "balanced": {
+      "n": 8758,
+      "engine_rev": 416.52,
+      "compete_rev": 399.52,
+      "lift_pct": 4.25,
+      "traded_up_pct": 79.1
+    },
+    "coverage_driven": {
+      "n": 13053,
+      "engine_rev": 444.46,
+      "compete_rev": 397.52,
+      "lift_pct": 11.81,
+      "traded_up_pct": 68.5
+    }
+  },
+  "disclosure": "Real Allstate menus + real segments; walk-away response is a conversion model calibrated to published auto-insurance elasticities (Guven & McPhail, CAS 2013). Lift is in simulation.",
+  "elasticity_sweep": [
+    {
+      "escale": 0.5,
+      "engine_lift_vs_compete_pct": 8.18,
+      "engine_lift_vs_upsell_pct": 0.25,
+      "engine_conversion": 0.6777
+    },
+    {
+      "escale": 0.75,
+      "engine_lift_vs_compete_pct": 7.38,
+      "engine_lift_vs_upsell_pct": 0.51,
+      "engine_conversion": 0.6753
+    },
+    {
+      "escale": 1.0,
+      "engine_lift_vs_compete_pct": 6.67,
+      "engine_lift_vs_upsell_pct": 0.89,
+      "engine_conversion": 0.6722
+    },
+    {
+      "escale": 1.25,
+      "engine_lift_vs_compete_pct": 6.05,
+      "engine_lift_vs_upsell_pct": 1.37,
+      "engine_conversion": 0.6703
+    },
+    {
+      "escale": 1.5,
+      "engine_lift_vs_compete_pct": 5.54,
+      "engine_lift_vs_upsell_pct": 1.96,
+      "engine_conversion": 0.6692
+    }
+  ]
+}

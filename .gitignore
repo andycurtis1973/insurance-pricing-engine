@@ -1,0 +1,15 @@
+# Allstate source + derived data (Kaggle-gated — download per the README, do not redistribute)
+data/train.csv
+data/out/
+
+# leftover exploration file, not part of this build
+data/freMTPL2freq.arff
+
+# generated video intermediates (final .mp4 is kept)
+video/audio/
+video/assets/
+video/out/*.png
+
+__pycache__/
+*.pyc
+.DS_Store

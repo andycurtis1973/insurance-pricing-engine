@@ -1,0 +1,91 @@
+{
+  "model": "Bayesian conditional logit (Laplace posterior)",
+  "n_sets": 48677,
+  "n_test": 14455,
+  "n_params": 6,
+  "top1_accuracy": 0.4231,
+  "baseline_cheapest": 0.2581,
+  "baseline_richest_coverage": 0.3936,
+  "coefficients": [
+    {
+      "name": "price",
+      "mean": -0.6,
+      "sd": 0.0571,
+      "ci95": [
+        -0.712,
+        -0.4881
+      ],
+      "significant": true
+    },
+    {
+      "name": "coverage",
+      "mean": 0.1167,
+      "sd": 0.0066,
+      "ci95": [
+        0.1038,
+        0.1295
+      ],
+      "significant": true
+    },
+    {
+      "name": "price:homeowner",
+      "mean": -0.5189,
+      "sd": 0.0763,
+      "ci95": [
+        -0.6684,
+        -0.3693
+      ],
+      "significant": true
+    },
+    {
+      "name": "price:young",
+      "mean": -0.4783,
+      "sd": 0.07,
+      "ci95": [
+        -0.6154,
+        -0.3412
+      ],
+      "significant": true
+    },
+    {
+      "name": "price:car_value",
+      "mean": 0.4314,
+      "sd": 0.0294,
+      "ci95": [
+        0.3739,
+        0.489
+      ],
+      "significant": true
+    },
+    {
+      "name": "coverage:homeowner",
+      "mean": 0.141,
+      "sd": 0.0092,
+      "ci95": [
+        0.1229,
+        0.159
+      ],
+      "significant": true
+    }
+  ],
+  "price_coef": {
+    "name": "price",
+    "mean": -0.6,
+    "sd": 0.0571,
+    "ci95": [
+      -0.712,
+      -0.4881
+    ],
+    "significant": true
+  },
+  "coverage_coef": {
+    "name": "coverage",
+    "mean": 0.1167,
+    "sd": 0.0066,
+    "ci95": [
+      0.1038,
+      0.1295
+    ],
+    "significant": true
+  }
+}

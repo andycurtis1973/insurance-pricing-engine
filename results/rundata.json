@@ -1,0 +1,665 @@
+{
+  "corpus": {
+    "n_customers": 97009,
+    "median_quotes": 6,
+    "premium_p10": 581,
+    "premium_median": 634,
+    "premium_p90": 689,
+    "pct_saw_price_variation": 96.8,
+    "avg_cost_range": 32,
+    "pct_bought_cheapest": 24.7,
+    "pct_bought_richest_cov": 55.7,
+    "coverage_max": 18
+  },
+  "choice_model": {
+    "model": "Bayesian conditional logit (Laplace posterior)",
+    "n_sets": 48677,
+    "n_test": 14455,
+    "top1": 0.4231,
+    "baseline_cheapest": 0.2581,
+    "baseline_richest": 0.3936,
+    "price": {
+      "name": "price",
+      "mean": -0.6,
+      "sd": 0.0571,
+      "ci95": [
+        -0.712,
+        -0.4881
+      ],
+      "significant": true
+    },
+    "coverage": {
+      "name": "coverage",
+      "mean": 0.1167,
+      "sd": 0.0066,
+      "ci95": [
+        0.1038,
+        0.1295
+      ],
+      "significant": true
+    },
+    "price_homeowner": {
+      "name": "price:homeowner",
+      "mean": -0.5189,
+      "sd": 0.0763,
+      "ci95": [
+        -0.6684,
+        -0.3693
+      ],
+      "significant": true
+    },
+    "price_young": {
+      "name": "price:young",
+      "mean": -0.4783,
+      "sd": 0.07,
+      "ci95": [
+        -0.6154,
+        -0.3412
+      ],
+      "significant": true
+    },
+    "price_car_value": {
+      "name": "price:car_value",
+      "mean": 0.4314,
+      "sd": 0.0294,
+      "ci95": [
+        0.3739,
+        0.489
+      ],
+      "significant": true
+    }
+  },
+  "segments": {
+    "price_driven": {
+      "pct": 24.7,
+      "n": 23948,
+      "bought_cheapest_pct": 100.0,
+      "avg_coverage_pct": 53.0,
+      "avg_premium": 626
+    },
+    "balanced": {
+      "pct": 30.2,
+      "n": 29278,
+      "bought_cheapest_pct": 0.0,
+      "avg_coverage_pct": 50.5,
+      "avg_premium": 634
+    },
+    "coverage_driven": {
+      "pct": 45.1,
+      "n": 43783,
+      "bought_cheapest_pct": 0.0,
+      "avg_coverage_pct": 62.0,
+      "avg_premium": 638
+    }
+  },
+  "engine": {
+    "n_test": 28544,
+    "arc_elasticities": {
+      "price_driven": -2.1,
+      "balanced": -1.22,
+      "coverage_driven": -0.53
+    },
+    "strategies": {
+      "compete_on_price": {
+        "rev_per_shopper": 400.74,
+        "conversion": 0.65,
+        "avg_premium_offered": 616.53
+      },
+      "blanket_upsell": {
+        "rev_per_shopper": 423.7,
+        "conversion": 0.6634,
+        "avg_premium_offered": 639.32
+      },
+      "engine": {
+        "rev_per_shopper": 427.48,
+        "conversion": 0.6722,
+        "avg_premium_offered": 635.92
+      }
+    },
+    "lift_vs_compete_pct": 6.67,
+    "lift_vs_upsell_pct": 0.89,
+    "by_segment": {
+      "price_driven": {
+        "n": 6733,
+        "engine_rev": 408.83,
+        "compete_rev": 408.59,
+        "lift_pct": 0.06,
+        "traded_up_pct": 13.2
+      },
+      "balanced": {
+        "n": 8758,
+        "engine_rev": 416.52,
+        "compete_rev": 399.52,
+        "lift_pct": 4.25,
+        "traded_up_pct": 79.1
+      },
+      "coverage_driven": {
+        "n": 13053,
+        "engine_rev": 444.46,
+        "compete_rev": 397.52,
+        "lift_pct": 11.81,
+        "traded_up_pct": 68.5
+      }
+    },
+    "elasticity_sweep": [
+      {
+        "escale": 0.5,
+        "engine_lift_vs_compete_pct": 8.18,
+        "engine_lift_vs_upsell_pct": 0.25,
+        "engine_conversion": 0.6777
+      },
+      {
+        "escale": 0.75,
+        "engine_lift_vs_compete_pct": 7.38,
+        "engine_lift_vs_upsell_pct": 0.51,
+        "engine_conversion": 0.6753
+      },
+      {
+        "escale": 1.0,
+        "engine_lift_vs_compete_pct": 6.67,
+        "engine_lift_vs_upsell_pct": 0.89,
+        "engine_conversion": 0.6722
+      },
+      {
+        "escale": 1.25,
+        "engine_lift_vs_compete_pct": 6.05,
+        "engine_lift_vs_upsell_pct": 1.37,
+        "engine_conversion": 0.6703
+      },
+      {
+        "escale": 1.5,
+        "engine_lift_vs_compete_pct": 5.54,
+        "engine_lift_vs_upsell_pct": 1.96,
+        "engine_conversion": 0.6692
+      }
+    ]
+  },
+  "bandit": {
+    "n_stream": 95070,
+    "oracle_arm": {
+      "price_driven": "lean",
+      "balanced": "rich",
+      "coverage_driven": "rich"
+    },
+    "bandit_arm": {
+      "price_driven": "lean",
+      "balanced": "rich",
+      "coverage_driven": "rich"
+    },
+    "lock_in": {
+      "price_driven": 4206,
+      "balanced": 201,
+      "coverage_driven": 496
+    },
+    "learned_conversion": {
+      "price_driven": {
+        "lean": 0.653,
+        "mid": 0.556,
+        "rich": 0.48
+      },
+      "balanced": {
+        "lean": 0.614,
+        "mid": 0.614,
+        "rich": 0.644
+      },
+      "coverage_driven": {
+        "lean": 0.66,
+        "mid": 0.637,
+        "rich": 0.7
+      }
+    },
+    "final_rev": {
+      "bandit": 424.42,
+      "compete": 400.66,
+      "blanket": 423.4,
+      "oracle": 426.5
+    },
+    "lift_vs_compete_pct": 5.93,
+    "regret_vs_oracle_pct": 0.49,
+    "curve": [
+      {
+        "t": 1584,
+        "bandit": 419.43,
+        "compete": 401.51,
+        "blanket": 423.38,
+        "oracle": 426.38
+      },
+      {
+        "t": 3168,
+        "bandit": 422.93,
+        "compete": 401.28,
+        "blanket": 423.92,
+        "oracle": 427.03
+      },
+      {
+        "t": 4752,
+        "bandit": 419.28,
+        "compete": 401.06,
+        "blanket": 423.96,
+        "oracle": 426.95
+      },
+      {
+        "t": 6336,
+        "bandit": 420.2,
+        "compete": 400.96,
+        "blanket": 424.05,
+        "oracle": 427.0
+      },
+      {
+        "t": 7920,
+        "bandit": 422.2,
+        "compete": 400.81,
+        "blanket": 423.75,
+        "oracle": 426.87
+      },
+      {
+        "t": 9504,
+        "bandit": 422.63,
+        "compete": 400.86,
+        "blanket": 423.82,
+        "oracle": 426.94
+      },
+      {
+        "t": 11088,
+        "bandit": 423.52,
+        "compete": 400.97,
+        "blanket": 423.85,
+        "oracle": 426.96
+      },
+      {
+        "t": 12672,
+        "bandit": 424.48,
+        "compete": 400.91,
+        "blanket": 423.72,
+        "oracle": 426.89
+      },
+      {
+        "t": 14256,
+        "bandit": 425.07,
+        "compete": 400.89,
+        "blanket": 423.85,
+        "oracle": 426.99
+      },
+      {
+        "t": 15840,
+        "bandit": 425.55,
+        "compete": 400.87,
+        "blanket": 423.88,
+        "oracle": 427.01
+      },
+      {
+        "t": 17424,
+        "bandit": 424.83,
+        "compete": 400.86,
+        "blanket": 423.76,
+        "oracle": 426.9
+      },
+      {
+        "t": 19008,
+        "bandit": 425.05,
+        "compete": 400.88,
+        "blanket": 423.76,
+        "oracle": 426.9
+      },
+      {
+        "t": 20592,
+        "bandit": 425.2,
+        "compete": 400.74,
+        "blanket": 423.67,
+        "oracle": 426.81
+      },
+      {
+        "t": 22176,
+        "bandit": 425.08,
+        "compete": 400.72,
+        "blanket": 423.62,
+        "oracle": 426.77
+      },
+      {
+        "t": 23760,
+        "bandit": 425.37,
+        "compete": 400.69,
+        "blanket": 423.63,
+        "oracle": 426.74
+      },
+      {
+        "t": 25344,
+        "bandit": 425.24,
+        "compete": 400.74,
+        "blanket": 423.62,
+        "oracle": 426.74
+      },
+      {
+        "t": 26928,
+        "bandit": 425.11,
+        "compete": 400.79,
+        "blanket": 423.61,
+        "oracle": 426.71
+      },
+      {
+        "t": 28512,
+        "bandit": 424.14,
+        "compete": 400.8,
+        "blanket": 423.54,
+        "oracle": 426.69
+      },
+      {
+        "t": 30096,
+        "bandit": 423.7,
+        "compete": 400.75,
+        "blanket": 423.55,
+        "oracle": 426.68
+      },
+      {
+        "t": 31680,
+        "bandit": 423.29,
+        "compete": 400.75,
+        "blanket": 423.47,
+        "oracle": 426.6
+      },
+      {
+        "t": 33264,
+        "bandit": 422.98,
+        "compete": 400.8,
+        "blanket": 423.52,
+        "oracle": 426.65
+      },
+      {
+        "t": 34848,
+        "bandit": 423.46,
+        "compete": 400.8,
+        "blanket": 423.51,
+        "oracle": 426.62
+      },
+      {
+        "t": 36432,
+        "bandit": 423.35,
+        "compete": 400.77,
+        "blanket": 423.53,
+        "oracle": 426.65
+      },
+      {
+        "t": 38016,
+        "bandit": 423.77,
+        "compete": 400.76,
+        "blanket": 423.44,
+        "oracle": 426.59
+      },
+      {
+        "t": 39600,
+        "bandit": 423.61,
+        "compete": 400.73,
+        "blanket": 423.4,
+        "oracle": 426.55
+      },
+      {
+        "t": 41184,
+        "bandit": 423.96,
+        "compete": 400.7,
+        "blanket": 423.34,
+        "oracle": 426.5
+      },
+      {
+        "t": 42768,
+        "bandit": 423.83,
+        "compete": 400.72,
+        "blanket": 423.38,
+        "oracle": 426.54
+      },
+      {
+        "t": 44352,
+        "bandit": 423.71,
+        "compete": 400.68,
+        "blanket": 423.36,
+        "oracle": 426.52
+      },
+      {
+        "t": 45936,
+        "bandit": 423.99,
+        "compete": 400.67,
+        "blanket": 423.34,
+        "oracle": 426.49
+      },
+      {
+        "t": 47520,
+        "bandit": 424.25,
+        "compete": 400.64,
+        "blanket": 423.4,
+        "oracle": 426.56
+      },
+      {
+        "t": 49104,
+        "bandit": 424.23,
+        "compete": 400.66,
+        "blanket": 423.43,
+        "oracle": 426.57
+      },
+      {
+        "t": 50688,
+        "bandit": 424.19,
+        "compete": 400.63,
+        "blanket": 423.4,
+        "oracle": 426.54
+      },
+      {
+        "t": 52272,
+        "bandit": 424.07,
+        "compete": 400.59,
+        "blanket": 423.37,
+        "oracle": 426.52
+      },
+      {
+        "t": 53856,
+        "bandit": 423.87,
+        "compete": 400.57,
+        "blanket": 423.41,
+        "oracle": 426.55
+      },
+      {
+        "t": 55440,
+        "bandit": 423.67,
+        "compete": 400.56,
+        "blanket": 423.37,
+        "oracle": 426.51
+      },
+      {
+        "t": 57024,
+        "bandit": 423.89,
+        "compete": 400.58,
+        "blanket": 423.39,
+        "oracle": 426.53
+      },
+      {
+        "t": 58608,
+        "bandit": 423.82,
+        "compete": 400.57,
+        "blanket": 423.38,
+        "oracle": 426.52
+      },
+      {
+        "t": 60192,
+        "bandit": 424.15,
+        "compete": 400.57,
+        "blanket": 423.39,
+        "oracle": 426.53
+      },
+      {
+        "t": 61776,
+        "bandit": 424.52,
+        "compete": 400.56,
+        "blanket": 423.35,
+        "oracle": 426.49
+      },
+      {
+        "t": 63360,
+        "bandit": 424.47,
+        "compete": 400.56,
+        "blanket": 423.36,
+        "oracle": 426.5
+      },
+      {
+        "t": 64944,
+        "bandit": 424.32,
+        "compete": 400.56,
+        "blanket": 423.38,
+        "oracle": 426.51
+      },
+      {
+        "t": 66528,
+        "bandit": 424.45,
+        "compete": 400.57,
+        "blanket": 423.39,
+        "oracle": 426.52
+      },
+      {
+        "t": 68112,
+        "bandit": 424.52,
+        "compete": 400.58,
+        "blanket": 423.42,
+        "oracle": 426.53
+      },
+      {
+        "t": 69696,
+        "bandit": 424.41,
+        "compete": 400.57,
+        "blanket": 423.46,
+        "oracle": 426.56
+      },
+      {
+        "t": 71280,
+        "bandit": 424.43,
+        "compete": 400.59,
+        "blanket": 423.46,
+        "oracle": 426.57
+      },
+      {
+        "t": 72864,
+        "bandit": 424.39,
+        "compete": 400.61,
+        "blanket": 423.48,
+        "oracle": 426.59
+      },
+      {
+        "t": 74448,
+        "bandit": 424.27,
+        "compete": 400.61,
+        "blanket": 423.45,
+        "oracle": 426.57
+      },
+      {
+        "t": 76032,
+        "bandit": 424.14,
+        "compete": 400.61,
+        "blanket": 423.49,
+        "oracle": 426.6
+      },
+      {
+        "t": 77616,
+        "bandit": 424.0,
+        "compete": 400.58,
+        "blanket": 423.47,
+        "oracle": 426.57
+      },
+      {
+        "t": 79200,
+        "bandit": 424.23,
+        "compete": 400.57,
+        "blanket": 423.47,
+        "oracle": 426.58
+      },
+      {
+        "t": 80784,
+        "bandit": 424.46,
+        "compete": 400.58,
+        "blanket": 423.49,
+        "oracle": 426.6
+      },
+      {
+        "t": 82368,
+        "bandit": 424.4,
+        "compete": 400.59,
+        "blanket": 423.49,
+        "oracle": 426.59
+      },
+      {
+        "t": 83952,
+        "bandit": 424.5,
+        "compete": 400.6,
+        "blanket": 423.48,
+        "oracle": 426.59
+      },
+      {
+        "t": 85536,
+        "bandit": 424.42,
+        "compete": 400.6,
+        "blanket": 423.44,
+        "oracle": 426.54
+      },
+      {
+        "t": 87120,
+        "bandit": 424.44,
+        "compete": 400.62,
+        "blanket": 423.42,
+        "oracle": 426.52
+      },
+      {
+        "t": 88704,
+        "bandit": 424.43,
+        "compete": 400.62,
+        "blanket": 423.43,
+        "oracle": 426.53
+      },
+      {
+        "t": 90288,
+        "bandit": 424.48,
+        "compete": 400.63,
+        "blanket": 423.44,
+        "oracle": 426.54
+      },
+      {
+        "t": 91872,
+        "bandit": 424.53,
+        "compete": 400.63,
+        "blanket": 423.41,
+        "oracle": 426.52
+      },
+      {
+        "t": 93456,
+        "bandit": 424.44,
+        "compete": 400.64,
+        "blanket": 423.39,
+        "oracle": 426.49
+      },
+      {
+        "t": 95040,
+        "bandit": 424.43,
+        "compete": 400.67,
+        "blanket": 423.4,
+        "oracle": 426.5
+      },
+      {
+        "t": 95070,
+        "bandit": 424.42,
+        "compete": 400.66,
+        "blanket": 423.4,
+        "oracle": 426.5
+      }
+    ]
+  },
+  "disclosure": {
+    "real": [
+      "97,009 real Allstate auto-insurance shopping sessions",
+      "the coverage/price menu each shopper actually saw",
+      "price- vs coverage-driven segment, from what they actually bought",
+      "Bayesian choice-model price & coverage sensitivities (with credible intervals)"
+    ],
+    "simulated": [
+      "whether a shopper walks away at a higher price \u2014 a logistic conversion model calibrated to published auto-insurance price elasticities (heterogeneous; highest for direct/aggregator shoppers)"
+    ],
+    "sources": [
+      "Guven & McPhail, \"Beyond the Cost Model\", CAS E-Forum 2013",
+      "Akur8, \"Demand Modeling in Insurance\""
+    ],
+    "headline_frame": "lift in simulation \u2014 not a claim about Allstate's revenue"
+  }
+}

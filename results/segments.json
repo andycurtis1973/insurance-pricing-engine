@@ -1,0 +1,46 @@
+{
+  "n_customers": 97009,
+  "segmentation": "by revealed behaviour (cheapest vs richest coverage chosen)",
+  "segments": {
+    "price_driven": {
+      "n": 23948,
+      "pct": 24.7,
+      "avg_beta_price": -1.008,
+      "bought_cheapest_pct": 100.0,
+      "bought_richest_cov_pct": 42.6,
+      "avg_buy_cov_pct": 53.0,
+      "avg_premium": 626,
+      "pct_young": 20.3,
+      "pct_homeowner": 56.3
+    },
+    "balanced": {
+      "n": 29278,
+      "pct": 30.2,
+      "avg_beta_price": -0.983,
+      "bought_cheapest_pct": 0.0,
+      "bought_richest_cov_pct": 0.0,
+      "avg_buy_cov_pct": 50.5,
+      "avg_premium": 634,
+      "pct_young": 21.0,
+      "pct_homeowner": 47.7
+    },
+    "coverage_driven": {
+      "n": 43783,
+      "pct": 45.1,
+      "avg_beta_price": -0.943,
+      "bought_cheapest_pct": 0.0,
+      "bought_richest_cov_pct": 100.0,
+      "avg_buy_cov_pct": 62.0,
+      "avg_premium": 638,
+      "pct_young": 15.7,
+      "pct_homeowner": 58.2
+    }
+  },
+  "validation": {
+    "price_driven_buy_cheapest_pct": 100.0,
+    "coverage_driven_buy_cheapest_pct": 0.0,
+    "price_driven_avg_coverage_pct": 53.0,
+    "coverage_driven_avg_coverage_pct": 62.0,
+    "premium_gap_usd": 12
+  }
+}
