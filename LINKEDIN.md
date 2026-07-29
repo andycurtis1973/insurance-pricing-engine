@@ -69,4 +69,5 @@ were already going to say yes? 👇
 **First comment:**
 > Code, data, and the elasticity sweep (with the simulated layer labeled):
 > github.com/andycurtis1973/insurance-pricing-engine
-> Interactive walkthrough: <shared artifact link>
+> Interactive walkthrough: https://claude.ai/code/artifact/7cc2d8ed-eabc-4a0c-9d19-713c4577f888
+> (artifact is private until you share it from the page's share menu)
