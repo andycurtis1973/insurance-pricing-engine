@@ -67,6 +67,38 @@ def ease(t):
     return 1 - (1 - t) ** 3
 
 
+def abox(d, x, y, w, h, title, sub, col, on=True):
+    """A service box: accent-topped card with a title and a small caption."""
+    fill = CARD if on else BG
+    d.rounded_rectangle([x, y, x + w, y + h], radius=10, fill=fill,
+                        outline=col if on else RULE, width=2 if on else 1)
+    if on:
+        d.rounded_rectangle([x, y, x + w, y + 6], radius=3, fill=col)
+        T(d, (x + 20, y + 20), title, font("bold", 27), TX)
+        if sub:
+            T(d, (x + 20, y + 56), sub, font("mono", 19), MUT)
+
+
+def arrow(d, x1, y1, x2, y2, col, dash=False, w=3):
+    """Straight connector with a small arrowhead at (x2,y2)."""
+    if dash:
+        import math
+        n = max(2, int(math.hypot(x2 - x1, y2 - y1) / 16))
+        for i in range(n):
+            if i % 2:
+                continue
+            a, b = i / n, (i + 1) / n
+            d.line([x1 + (x2 - x1) * a, y1 + (y2 - y1) * a,
+                    x1 + (x2 - x1) * b, y1 + (y2 - y1) * b], fill=col, width=w)
+    else:
+        d.line([x1, y1, x2, y2], fill=col, width=w)
+    import math
+    ang = math.atan2(y2 - y1, x2 - x1)
+    for da in (2.6, -2.6):
+        d.line([x2, y2, x2 + 14 * math.cos(ang + da), y2 + 14 * math.sin(ang + da)],
+               fill=col, width=w)
+
+
 # --- the numbers -----------------------------------------------------------
 D = json.loads((ROOT / "results" / "rundata.json").read_text())
 C, CM, SG, EN, BD, DS = (D["corpus"], D["choice_model"], D["segments"],
@@ -256,17 +288,20 @@ def a_engine(t):
             ("Blanket upsell everyone", STR["blanket_upsell"], PRICE),
             ("The engine — aim per shopper", STR["engine"], ENGINE)]
     x0, y0, bh, gap = 640, 300, 60, 92
-    mx = max(r[1]["rev_per_shopper"] for r in rows) * 1.02
-    bw = 900
+    mx = max(r[1]["rev_per_shopper"] for r in rows) * 1.06
+    bw = 760
     for i, (nm, v, col) in enumerate(rows):
         y = y0 + i * gap
         w = int(bw * v["rev_per_shopper"] / mx * e)
         T(d, (x0 - 28, y + bh / 2), nm, font("reg", 28), MUT, "rm")
         d.rounded_rectangle([x0, y, x0 + max(w, 3), y + bh], radius=7, fill=col)
         if e > 0.6:
-            T(d, (x0 + w + 16, y + 18), f"${v['rev_per_shopper']:.0f}", font("bold", 34), TX)
-            T(d, (x0 + w + 16, y + 40), f"{v['conversion']*100:.0f}% convert",
-              font("mono", 20), DIM)
+            val = f"${v['rev_per_shopper']:.0f}"
+            lx = x0 + w + 20
+            T(d, (lx, y + bh / 2), val, font("bold", 34), TX, "lm")
+            vw = d.textlength(val, font=font("bold", 34))
+            T(d, (lx + vw + 18, y + bh / 2), f"·  {v['conversion']*100:.0f}% convert",
+              font("mono", 22), DIM, "lm")
     if t > 0.72:
         pd = EN["by_segment"]["price_driven"]
         cd = EN["by_segment"]["coverage_driven"]
@@ -346,6 +381,65 @@ def a_learn(t):
     return img
 
 
+def a_architecture(t):
+    """How it ships: the streaming decision-and-learning loop on AWS.
+    A clockwise loop — decide across the top, learn back along the bottom, with an
+    offline analytics/retrain column on the right. Labeled a deployment blueprint;
+    the build itself ran offline."""
+    img, d = base("how you'd ship it")
+    T(d, (110, 172), "In production, it's a streaming loop", font("bold", 54), TX)
+    r1 = ease(min(1.0, t / 0.32))                        # decide band + brain
+    r2 = ease(min(1.0, max(0.0, (t - 0.28) / 0.34)))     # learn band + loop
+    r3 = ease(min(1.0, max(0.0, (t - 0.56) / 0.30)))     # offline analytics
+
+    # ---- DECIDE band (blue): shopper -> API GW -> Lambda -> featured offer ---
+    T(d, (110, 264), "DECIDE  ·  a few milliseconds", font("mono", 22), ENGINE)
+    if r1 > 0.05:
+        abox(d, 110, 300, 210, 96, "Shopper", "quote page", ENGINE)
+        abox(d, 372, 300, 230, 96, "API Gateway", "/price request", ENGINE)
+        abox(d, 654, 300, 300, 96, "Lambda", "pick the offer to feature", ENGINE)
+        abox(d, 1006, 300, 230, 96, "Featured offer", "lean · mid · rich", ENGINE)
+        arrow(d, 322, 348, 370, 348, MUT)
+        arrow(d, 604, 348, 652, 348, MUT)
+        arrow(d, 956, 348, 1004, 348, MUT)
+
+    # ---- shared brain: DynamoDB posteriors ----------------------------------
+    if r1 > 0.5:
+        abox(d, 654, 452, 300, 92, "DynamoDB", "Thompson posteriors  α,β / segment×arm", BAL)
+        arrow(d, 790, 398, 790, 450, BAL)                # Lambda reads down
+        arrow(d, 820, 450, 820, 400, BAL)                # ...writes back up
+
+    # ---- LEARN band (gold), right->left: clicks -> Kinesis -> Flink ---------
+    T(d, (110, 596), "LEARN  ·  from every click, in near-real-time", font("mono", 22), GOLD)
+    if r2 > 0.05:
+        abox(d, 1006, 626, 230, 96, "Click events", "shown · converted · left", GOLD)
+        abox(d, 664, 626, 300, 96, "Kinesis Data Streams", "the clickstream backbone", GOLD)
+        abox(d, 322, 626, 300, 96, "Managed Flink", "update the posteriors", GOLD)
+        arrow(d, 1004, 674, 966, 674, MUT)               # clicks -> Kinesis
+        arrow(d, 662, 674, 624, 674, MUT)                # Kinesis -> Flink
+    if r2 > 0.55:
+        arrow(d, 472, 624, 652, 548, GOLD)               # Flink -> DynamoDB (adapt)
+        arrow(d, 1121, 398, 1121, 624, ENGINE, dash=True)  # offer -> the next click
+        T(d, (1252, 508), "every offer →", font("mono", 19), DIM)
+        T(d, (1252, 532), "the next click", font("mono", 19), DIM)
+
+    # ---- OFFLINE column (green): retrain + archive/dashboards ---------------
+    T(d, (1330, 264), "OBSERVE & RETRAIN", font("mono", 22), COV)
+    if r3 > 0.05:
+        abox(d, 1330, 300, 480, 96, "SageMaker · nightly", "retrain choice model → segments + priors", COV)
+        abox(d, 1330, 626, 480, 96, "Firehose → S3 · Athena / QuickSight",
+             "event lake · dashboards · guardrails", COV)
+        arrow(d, 1238, 674, 1328, 674, MUT)              # clicks -> archive
+        arrow(d, 1450, 398, 956, 476, COV, dash=True)    # fresh priors -> DynamoDB
+
+    if t > 0.9:
+        T(d, (110, 812), "Guardrails — no-underprice floor, human-set caps — enforced in the "
+          "decision step.", font("reg", 27), MUT)
+        T(d, (110, 872), "A deployment blueprint: the build you just saw ran offline on a "
+          "laptop. This is the shape it takes live.", font("bold", 27), GOLD)
+    return img
+
+
 # ---- narration -----------------------------------------------------------
 SEGMENTS = [
     {"name": "s0_title", "kind": "static", "build": s0_title, "vo": [
@@ -376,7 +470,12 @@ SEGMENTS = [
         "But you never know a shopper's elasticity up front. You learn it, from clicks.",
         "Push a price-driven shopper to richer coverage and their conversion falls. Push a coverage-driven one, and it rises. Same offer, opposite result.",
         f"A Thompson Sampling bandit finds each segment's best offer on its own — converging within half a percent of a perfect-knowledge oracle."]},
-    {"name": "s7_close", "kind": "static", "build": s7_close, "vo": [
+    {"name": "s7_arch", "kind": "anim", "build": a_architecture, "vo": [
+        "One more thing — how this actually ships.",
+        "In production it's a streaming loop. Every quote and click flows through Kinesis. A decision service — API Gateway and Lambda, with the bandit's posteriors in DynamoDB — picks the offer to feature in a few milliseconds.",
+        "A Flink consumer folds each conversion back into those posteriors, so the engine adapts within minutes, not overnight. Firehose lands every event in S3 for the dashboards, and SageMaker retrains the choice model nightly.",
+        "To be clear — I didn't run this at scale. The build you just saw ran offline on a laptop. This is just the shape it takes when you ship it."]},
+    {"name": "s8_close", "kind": "static", "build": s7_close, "vo": [
         "The whole idea is simple. Stop discounting to people who would have paid more.",
         "The data's real, the code's open, and the one simulated piece is labeled. That's this week's build."]},
 ]

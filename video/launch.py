@@ -26,7 +26,7 @@ IAM = "video-pipeline-OrchestratorInstanceProfile-dQUZ1twvC9Ba"
 BUCKET = "nscale-modules-641315376775-us-east-1"
 PREFIX = "insurance-pricing-video"
 REGION = "us-east-1"
-N_SEGMENTS = 8
+N_SEGMENTS = 9
 
 
 def _userdata() -> str:
