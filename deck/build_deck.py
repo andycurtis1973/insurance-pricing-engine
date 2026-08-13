@@ -220,6 +220,11 @@ DECK = [
      "explains it, split them into segments, then draw a clear line around the one simulated "
      "piece before we ever talk about money. Then the engine and its lift, how it learns online, "
      "and how it would deploy. Save questions for the end, or drop them in the chat."),
+    (w_problem, "Start with the framing. Every insurer competes on the cheapest quote — but "
+     "'the customer' is a fiction. When you price to the average, you hand a discount to the "
+     "people who would happily have paid more, and you still lose the ones who won't pay up. "
+     "So the real question isn't 'what's our price?' — it's 'who are we pricing to?' Everything "
+     "that follows is about answering that from data."),
     (lambda: R.a_behavior(1.0), "Every square is a real person shopping for car insurance. Only "
      "about a quarter bought the cheapest option they saw. Nearly half traded up to richer "
      "coverage and paid more. Same quote engine, two completely different shoppers — and if you "
