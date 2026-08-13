@@ -13,3 +13,6 @@ video/out/*.png
 __pycache__/
 *.pyc
 .DS_Store
+
+# webinar deck intermediates (final .pptx is kept)
+deck/slides/
