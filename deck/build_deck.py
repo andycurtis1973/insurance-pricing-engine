@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "video"))
 import render as R                       # noqa: E402  (helpers, data, slide builders)
 from render import (W, H, TX, MUT, DIM, CARD, RULE, ENGINE, PRICE, COV, BAL, GOLD,  # noqa
-                    T, font, base, C, CM, SG, EN, BD, PD, CD)
+                    T, font, base, abox, C, CM, SG, EN, BD, PD, CD)
 
 SLIDES = ROOT / "deck" / "slides"
 SLIDES.mkdir(parents=True, exist_ok=True)
@@ -44,9 +44,9 @@ def w_agenda():
     T(d, (110, 178), "What we'll cover", font("bold", 56), TX)
     items = [("The shopper reality", "what 97,009 people actually bought"),
              ("A Bayesian model of the choice", "price vs coverage, with credible intervals"),
-             ("Two shoppers, one price tag", "price- vs coverage-driven segments"),
+             ("Price- vs coverage-driven", "three segments, from real purchases"),
              ("The honest part", "real data + one disclosed, calibrated layer"),
-             ("The engine, and the lift", "aim per shopper — not one price for all"),
+             ("Follow three shoppers through the engine", "lookalikes → clicks → steer → dynamic price"),
              ("Learning online, and shipping it", "Thompson Sampling, then AWS")]
     for i, (t, s) in enumerate(items):
         y = 296 + i * 104
@@ -164,6 +164,90 @@ def w_calibration():
     return img
 
 
+def _numbox(d, x, y, w, h, n, title, sub, col):
+    d.rounded_rectangle([x, y, x + w, y + h], radius=12, fill=CARD, outline=RULE, width=1)
+    d.rounded_rectangle([x, y, x + w, y + 7], radius=3, fill=col)
+    d.ellipse([x + 24, y + 28, x + 70, y + 74], fill=col)
+    T(d, (x + 47, y + 51), str(n), font("bold", 28), (15, 18, 24), "mm")
+    T(d, (x + 24, y + 98), title, font("bold", 29), TX)
+    T(d, (x + 24, y + 142), sub, font("reg", 21), MUT)
+
+
+def w_loop():
+    img, d = base("how it prices a new shopper")
+    T(d, (110, 178), "How the engine prices a shopper it's never seen", font("bold", 50), TX)
+    steps = [("Lookalike prior", "similar shoppers' real buys", ENGINE),
+             ("Float test offers", "lean · standard · full", ENGINE),
+             ("Read the clicks", "who they really are", GOLD),
+             ("Steer & price", "coverage + dynamic premium", COV)]
+    w, gap, x0, y, h = 395, 40, 110, 336, 190
+    for i, (t, s, col) in enumerate(steps):
+        x = x0 + i * (w + gap)
+        _numbox(d, x, y, w, h, i + 1, t, s, col)
+        if i < 3:
+            T(d, (x + w + gap / 2, y + h / 2), "→", font("bold", 40), DIM, "mm")
+    d.rounded_rectangle([110, 596, 1810, 700], radius=12, fill=CARD, outline=GOLD, width=2)
+    T(d, (150, 616), "THE CATCH", font("mono", 22), GOLD)
+    T(d, (150, 650), "Demographics guess the coverage. Only the clicks find who'll walk on price.",
+      font("bold", 34), TX)
+    return img
+
+
+def w_three():
+    img, d = base("three shoppers, three moves")
+    T(d, (110, 178), "Three shoppers. Same engine. Three moves.", font("bold", 50), TX)
+    cards = [("Dana", "PRICE-DRIVEN", "24 · renter · cheap car", PRICE,
+              "Basic", "$25K / $50K", "$551 → $521", "−$30", "discount to win the sale"),
+             ("Sam", "BALANCED", "38 · homeowner · mid car", BAL,
+              "Standard", "$100K / $300K", "$605 → $605", "holds", "list price already right"),
+             ("Carla", "COVERAGE-DRIVEN", "62 · homeowner · pricey car", COV,
+              "Full", "$250K / $500K", "$673 → $763", "+$90", "markup she'll accept")]
+    w, gap, x0, y, h = 550, 24, 110, 300, 566
+    for i, (nm, persona, demo, col, tier, limits, price, delta, why) in enumerate(cards):
+        x = x0 + i * (w + gap)
+        d.rounded_rectangle([x, y, x + w, y + h], radius=14, fill=CARD, outline=RULE, width=1)
+        d.rounded_rectangle([x, y, x + w, y + 8], radius=4, fill=col)
+        T(d, (x + 30, y + 38), nm, font("bold", 44), TX)
+        T(d, (x + 30, y + 104), persona, font("mono", 21), col)
+        T(d, (x + 30, y + 142), demo, font("reg", 22), MUT)
+        d.line([x + 30, y + 200, x + w - 30, y + 200], fill=RULE, width=1)
+        T(d, (x + 30, y + 220), "STEERED TO", font("mono", 18), DIM)
+        T(d, (x + 30, y + 250), tier, font("bold", 34), TX)
+        T(d, (x + 30, y + 298), limits + " liability", font("mono", 21), MUT)
+        T(d, (x + 30, y + 362), "DYNAMIC PRICE", font("mono", 18), DIM)
+        T(d, (x + 30, y + 392), price, font("bold", 30), TX)
+        T(d, (x + 30, y + 448), delta, font("bold", 44), col)
+        T(d, (x + 30, y + 514), why, font("reg", 22), MUT)
+    return img
+
+
+def w_dynamic():
+    img, d = base("the dynamic pricing")
+    T(d, (110, 178), "Dynamic pricing: the premium, off the list", font("bold", 50), TX)
+    T(d, (110, 250), "Same coverage the shopper wants — a personalized premium, moved off the standard price.",
+      font("reg", 32), MUT)
+    y, x0, x1 = 500, 300, 1620
+    cx = (x0 + x1) / 2
+    d.line([x0, y, x1, y], fill=RULE, width=3)
+    T(d, (cx, y - 96), "LIST PRICE", font("mono", 22), DIM, "mm")
+    d.line([cx, y - 22, cx, y + 22], fill=DIM, width=3)
+    T(d, (x0, y + 124), "←  DISCOUNT", font("mono", 24), PRICE, "lm")
+    T(d, (x1, y + 124), "MARKUP  →", font("mono", 24), COV, "rm")
+
+    def mark(px, label, delta, col):
+        d.ellipse([px - 13, y - 13, px + 13, y + 13], fill=col)
+        T(d, (px, y - 54), label, font("bold", 28), col, "mm")
+        T(d, (px, y + 56), delta, font("mono", 24), MUT, "mm")
+    mark(cx - 470, "Dana", "−$30", PRICE)
+    mark(cx, "Sam", "holds", BAL)
+    mark(cx + 470, "Carla", "+$90", COV)
+    T(d, (110, 722), "Elastic shoppers get a discount to convert. Inelastic coverage-lovers get a markup.",
+      font("reg", 32), TX)
+    T(d, (110, 774), "The balanced middle holds at list — personalization pays most at the extremes.",
+      font("reg", 32), MUT)
+    return img
+
+
 def w_takeaways():
     img, d = base("what to take away")
     T(d, (110, 178), "For anyone who prices to a mix of customers", font("bold", 50), TX)
@@ -255,11 +339,20 @@ DECK = [
      "one-half — and then we sweep it from half to one-and-a-half times. The lift holds between "
      "5.5 and 8.2% across the whole range. That's the difference between a calibrated simulator "
      "and a flattering guess."),
-    (lambda: R.a_engine(1.0), "Three ways to price. Compete on the cheapest quote; blanket-upsell "
-     "everyone; or aim per shopper. The engine lifts revenue per shopper about 6.7%, and "
-     "conversion goes up, not down — because it holds the price-driven on the lean quote so they "
-     "don't walk, and trades the coverage-lovers up. Notice the split: price-driven basically "
-     "left alone, coverage-driven up nearly 12%."),
+    (w_loop, "Here's how the engine prices a shopper it's never seen. Step one: look up what real "
+     "lookalikes bought — a warm start on coverage. Step two: float a few test offers. Step three: "
+     "read the clicks. Step four: steer the coverage and set the price. The catch is the whole "
+     "point — demographics can guess the coverage, but only the clicks reveal who'll walk on price."),
+    (w_three, "Watch it run on three real profiles. Dana, a young renter, clicks the cheapest option "
+     "— she's price-driven, so the engine steers her to Basic and prices it DOWN, $551 to $521, to "
+     "win a sale she'd otherwise walk from. Carla, an older homeowner, reaches for full coverage — "
+     "steered to Full and priced UP, $673 to $763, because she'll pay. Sam is in between: he takes "
+     "the standard plan, and the engine holds at the list price. Same engine, three different moves."),
+    (w_dynamic, "This is where the dynamic pricing actually happens. It's not the tier — those list "
+     "prices are cost-based. It's the personalized premium the engine sets on the tier the shopper "
+     "wants: a discount to convert the price-sensitive, a markup for the coverage-lover who'll pay, "
+     "and — for the balanced middle — no move at all. Personalization pays most at the extremes; "
+     "in the middle, the standard price is already right. That's the honest shape of it."),
     (lambda: R.a_learn(1.0), "In the real world you don't know a shopper's elasticity up front — "
      "you learn it from clicks. Push a price-driven shopper to richer coverage and conversion "
      "falls; push a coverage-driven one and it rises. Same offer, opposite result. A Thompson "
