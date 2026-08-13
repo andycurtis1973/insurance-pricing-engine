@@ -90,6 +90,19 @@
            font-size:15.5px; display:none; }
   .close.show { display:block; } .close b { color:var(--ink); } .close .big { color:var(--cov); font-weight:700; }
 
+  .datasrc { margin-top:14px; background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:16px 18px; }
+  .dhead { font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink3); margin-bottom:12px; }
+  .pipeline { display:flex; flex-wrap:wrap; gap:8px; }
+  .pnode { border:1.5px solid var(--rule); border-radius:9px; padding:8px 11px; background:var(--card2); opacity:.5;
+           transition:opacity .25s, transform .25s, box-shadow .25s, border-color .25s; }
+  .pnode.active { opacity:1; transform:translateY(-1px); }
+  .pnode .pn { font-size:13px; font-weight:640; } .pnode .ps { font-family:var(--mono); font-size:10px; color:var(--ink3); margin-top:1px; }
+  .pnode.g-green.active { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 18%,transparent); }
+  .pnode.g-purple.active { border-color:var(--bal); box-shadow:0 0 0 3px color-mix(in srgb,var(--bal) 18%,transparent); }
+  .pnode.g-blue.active { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 18%,transparent); }
+  .pnode.g-gold.active { border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 18%,transparent); }
+  .source { margin-top:12px; font-size:13.5px; color:var(--ink2); padding-left:12px; border-left:3px solid var(--engine); line-height:1.5; }
+  .source b { color:var(--ink); }
   footer { margin-top:26px; padding-top:16px; border-top:1px solid var(--rule); color:var(--ink3); font-size:12px; font-family:var(--mono); line-height:1.8; }
   footer a { color:var(--engine); }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
@@ -115,6 +128,12 @@
 
   <div class="caption" id="caption"></div>
   <div class="stage" id="stage"></div>
+
+  <div class="datasrc">
+    <div class="dhead">Where the data is coming from</div>
+    <div class="pipeline" id="pipeline"></div>
+    <div class="source" id="source"></div>
+  </div>
 
   <footer id="foot"></footer>
 </div>
@@ -144,6 +163,31 @@ const SHOPPERS={
     cell:{n:2446, prior:{price:0.22,balanced:0.24,coverage:0.54}, avg_cov:67},
     clicks:[{k:"rich",take:true},{k:"bal",take:true},{k:"lean",take:false}] },
 };
+
+// the deployment pipeline (matches the architecture slide) + what's live each beat
+const PIPE=[
+  {k:"sagemaker",n:"SageMaker",s:"nightly retrain",g:"green"},
+  {k:"dynamo",n:"DynamoDB",s:"posteriors + priors",g:"purple"},
+  {k:"lambda",n:"Lambda",s:"decide & price",g:"blue"},
+  {k:"shopper",n:"Shopper",s:"sees offer, clicks",g:"blue"},
+  {k:"kinesis",n:"Kinesis",s:"click events",g:"gold"},
+  {k:"flink",n:"Managed Flink",s:"update posteriors",g:"gold"},
+];
+const DSRC={
+  0:{a:["shopper"], t:`<b>Shopper</b> lands on the quote page; API Gateway takes the request.`},
+  1:{a:["shopper"], t:`Demographics captured &#8212; age, home, car value &#8212; the context for the lookup.`},
+  2:{a:["sagemaker","dynamo"], t:`The opening offer's prior is <b>real</b>: 96,882 Allstate shoppers, aggregated offline by the nightly <b>SageMaker</b> retrain into segment priors held in <b>DynamoDB</b>.`},
+  3:{a:["shopper","kinesis"], t:`Click 1 of 3 streams through <b>Kinesis</b> &#8212; the clickstream backbone.`},
+  4:{a:["kinesis","flink"], t:`The clicks flow to <b>Managed Flink</b>, which folds them into the Thompson posteriors.`},
+  5:{a:["flink","dynamo"], t:`<b>Flink</b> updates the <b>DynamoDB</b> posteriors in near-real-time &#8212; the read sharpens with every click.`},
+  6:{a:["lambda","dynamo"], t:`<b>Lambda</b> reads the posteriors from <b>DynamoDB</b> and prices the offer in a few milliseconds.`},
+};
+function renderPipe(b){
+  const d=DSRC[b]||DSRC[6], act=new Set(d.a);
+  document.getElementById("pipeline").innerHTML=PIPE.map(p=>
+    `<div class="pnode g-${p.g} ${act.has(p.k)?"active":""}"><div class="pn">${p.n}</div><div class="ps">${p.s}</div></div>`).join("");
+  document.getElementById("source").innerHTML=d.t;
+}
 
 let who="dana", beat=0, timer=null;
 const S=()=>SHOPPERS[who];
@@ -230,6 +274,7 @@ function render(){
       ${offersHTML(state,{key:steerK,premium:eng.premium})}${gaugeHTML(post,`Confirmed <b class="${conf}">${NAME[conf]}</b> (${Math.round(post[conf]*100)}% sure).`)}
       <div class="close show"><b>Sale closed &#8212;</b> <span class="big">cov ${covpct(eng.cov)}% at $${eng.premium}/yr</span>. ${why}</div>`;
   }
+  renderPipe(beat);
 }
 
 function step(){ if(beat<NBEATS-1){ beat++; render(); } else stop(); }
