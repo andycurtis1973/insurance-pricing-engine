@@ -1,0 +1,324 @@
+<title>Be the shopper — watch the pricing engine adapt</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg:#f7f8fa; --card:#ffffff; --card2:#f0f2f6; --rule:#e3e6ec;
+    --ink:#12141a; --ink2:#555c6b; --ink3:#858c9a;
+    --engine:#2a78d6; --price:#e34948; --cov:#1baf7a; --bal:#9a6bd6; --gold:#c78a1e;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+      --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+      --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+    --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+         line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:40px 22px 80px; }
+  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
+             text-transform:uppercase; color:var(--ink3); margin:0 0 12px; }
+  h1 { font-size:clamp(26px,4vw,38px); line-height:1.12; letter-spacing:-.02em;
+       margin:0 0 14px; font-weight:640; text-wrap:balance; }
+  h1 em { font-style:normal; color:var(--engine); }
+  .lede { font-size:16.5px; color:var(--ink2); margin:0; max-width:76ch; }
+  .lede b { color:var(--ink); font-weight:600; }
+
+  .stage { margin-top:26px; background:var(--card); border:1px solid var(--rule);
+           border-radius:16px; padding:22px; }
+  .prompt { font-size:15.5px; color:var(--ink2); margin:0 0 6px; }
+  .prompt b { color:var(--ink); }
+  .roundtag { font-family:var(--mono); font-size:12px; color:var(--ink3); margin-bottom:16px; }
+
+  .opts { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:640px){ .opts { grid-template-columns:1fr; } }
+  .opt { position:relative; text-align:left; cursor:pointer; background:var(--card2);
+         border:2px solid var(--rule); border-radius:13px; padding:18px 16px 16px;
+         color:var(--ink); font-family:var(--sans); transition:transform .1s ease,
+         border-color .16s ease, box-shadow .16s ease; display:flex; flex-direction:column; gap:0; }
+  .opt:hover { transform:translateY(-3px); border-color:var(--engine); }
+  .opt:focus-visible { outline:2px solid var(--engine); outline-offset:3px; }
+  .opt:active { transform:translateY(0); }
+  .opt.lead { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 20%,transparent); }
+  .opt.chosen { animation:chosen .5s ease; }
+  @keyframes chosen { 0%{transform:scale(1);} 40%{transform:scale(1.05); border-color:var(--cov);} 100%{transform:scale(1);} }
+  .opt.rejected { animation:rej .4s ease; }
+  @keyframes rej { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+  .leadbadge { position:absolute; top:-11px; left:14px; font-family:var(--mono); font-size:10px;
+               letter-spacing:.04em; text-transform:uppercase; background:var(--engine); color:#fff;
+               padding:3px 9px; border-radius:7px; display:none; }
+  .opt.lead .leadbadge { display:block; }
+  .oname { font-size:19px; font-weight:680; margin-bottom:2px; }
+  .odesc { font-family:var(--mono); font-size:11px; color:var(--ink3); margin-bottom:12px; }
+  .covbar { height:9px; border-radius:5px; background:var(--rule); overflow:hidden; margin-bottom:5px; }
+  .covbar > i { display:block; height:100%; background:var(--engine); border-radius:5px; }
+  .covtxt { font-family:var(--mono); font-size:11px; color:var(--ink2); margin-bottom:14px; }
+  .oprem { font-family:var(--mono); font-weight:800; font-size:26px; font-variant-numeric:tabular-nums; }
+  .oprem small { font-weight:400; font-size:12px; color:var(--ink3); }
+  .obelief { margin-top:12px; font-family:var(--mono); font-size:11.5px; color:var(--ink3);
+             display:flex; align-items:center; gap:7px; }
+  .obelief .bwrap { flex:1; height:5px; border-radius:3px; background:var(--rule); overflow:hidden; }
+  .obelief .bwrap > i { display:block; height:100%; background:var(--ink3); border-radius:3px; }
+
+  .walk { margin-top:14px; width:100%; cursor:pointer; font-family:var(--sans); font-size:14px;
+          font-weight:600; color:var(--price); background:transparent; border:1.5px dashed var(--price);
+          border-radius:11px; padding:12px; transition:filter .12s ease, transform .1s ease; }
+  .walk:hover { filter:brightness(1.08); } .walk:active { transform:translateY(1px); }
+  .walk:focus-visible { outline:2px solid var(--price); outline-offset:2px; }
+
+  .engine { margin-top:16px; background:var(--card); border:1px solid var(--rule);
+            border-top:3px solid var(--engine); border-radius:14px; padding:20px 22px; }
+  .engine h2 { font-size:16px; margin:0 0 10px; font-weight:640; }
+  .respond { font-size:15.5px; color:var(--ink); min-height:48px; margin-bottom:16px; }
+  .respond b { color:var(--engine); }
+  .respond .em { color:var(--cov); font-weight:700; }
+  .gauge { margin:6px 0 4px; }
+  .gauge .track { position:relative; height:12px; border-radius:7px;
+                  background:linear-gradient(90deg,var(--price),var(--bal),var(--cov)); opacity:.85; }
+  .gauge .mark { position:absolute; top:-5px; width:6px; height:22px; border-radius:3px;
+                 background:var(--ink); border:2px solid var(--card); transition:left .35s cubic-bezier(.4,1.3,.5,1); }
+  .gauge .glab { display:flex; justify-content:space-between; font-family:var(--mono);
+                 font-size:11px; color:var(--ink3); margin-top:7px; }
+  .leadline { margin-top:14px; font-family:var(--mono); font-size:13px; color:var(--ink2);
+              padding-top:12px; border-top:1px dashed var(--rule); font-variant-numeric:tabular-nums; }
+  .leadline b { color:var(--ink); }
+
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:16px; }
+  button.ctl { font-family:var(--sans); font-size:13.5px; font-weight:600; cursor:pointer;
+               border:1px solid var(--rule); background:var(--card2); color:var(--ink);
+               padding:9px 14px; border-radius:9px; }
+  button.ctl:hover { filter:brightness(1.06); } button.ctl:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
+  button.ctl.price { border-color:var(--price); color:var(--price); }
+  button.ctl.cov { border-color:var(--cov); color:var(--cov); }
+  button.ctl.ghost { color:var(--ink3); }
+  .controls .rounds { margin-left:auto; font-family:var(--mono); font-size:12.5px; color:var(--ink3); }
+  .controls .rounds b { color:var(--ink); }
+
+  .history { margin-top:16px; }
+  .hlabel { font-family:var(--mono); font-size:11px; color:var(--ink3); text-transform:uppercase;
+            letter-spacing:.06em; margin-bottom:8px; }
+  .hrow { display:flex; gap:6px; flex-wrap:wrap; min-height:26px; }
+  .hchip { font-family:var(--mono); font-size:11px; padding:4px 9px; border-radius:7px;
+           border:1px solid var(--rule); background:var(--card2); color:var(--ink2); }
+  .hchip.walk { color:var(--price); border-color:color-mix(in srgb,var(--price) 40%,var(--rule)); }
+  .hchip.new { animation:pop .28s ease; }
+  @keyframes pop { 0%{transform:scale(.5);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+
+  footer { margin-top:32px; padding-top:20px; border-top:1px solid var(--rule);
+           color:var(--ink3); font-size:12.5px; font-family:var(--mono); line-height:1.85; }
+  footer a { color:var(--engine); }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Interactive · you click, the engine adapts</p>
+    <h1>Be the shopper. <em>Watch the engine adapt</em> to your clicks.</h1>
+    <p class="lede">The engine shows three offers and <b>leads with</b> the one it thinks fits you.
+      Click the offer you'd actually buy — or walk away. Every click updates what it believes about
+      you, and it re-leads. Keep taking the cheapest and it stops pushing coverage; reach for the
+      rich plan and it leads with coverage. Not sure? Let it <b>auto-play</b> a shopper of each type.</p>
+  </header>
+
+  <div class="stage">
+    <p class="prompt"><b>You're shopping for car insurance.</b> Which offer would you take?</p>
+    <p class="roundtag" id="roundtag">Round 1 · the engine has no idea who you are yet — it leads with the priciest, since richer = more revenue.</p>
+    <div class="opts" id="opts"></div>
+    <button class="walk" id="walk">Walk away — too expensive</button>
+  </div>
+
+  <div class="engine">
+    <h2>How the engine responds</h2>
+    <div class="respond" id="respond">Make your first choice to see the engine react…</div>
+    <div class="gauge">
+      <div class="track"><div class="mark" id="mark" style="left:50%"></div></div>
+      <div class="glab"><span>price-driven</span><span>reads you as…</span><span>coverage-driven</span></div>
+    </div>
+    <div class="leadline" id="leadline">The engine leads with the offer that maximises expected revenue = P(you take it) × premium.</div>
+  </div>
+
+  <div class="controls">
+    <button class="ctl price" id="autoPrice">▶ Auto-play a price-sensitive shopper</button>
+    <button class="ctl cov" id="autoCov">▶ Auto-play a coverage-driven shopper</button>
+    <button class="ctl ghost" id="reset">Reset</button>
+    <span class="rounds"><b id="nRounds">0</b> choices made</span>
+  </div>
+
+  <div class="history">
+    <div class="hlabel">Your choices</div>
+    <div class="hrow" id="history"></div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+"use strict";
+// ---- the calibrated model (from engine/simulator.py), used only for auto-play -----
+const BASE_CONVERSION = 0.65, COVMAX = 18;
+const SEG = { price: { elast: 6.0, cov: 0.2 }, coverage: { elast: 1.5, cov: 2.5 } };
+const logit = p => Math.log(p / (1 - p));
+function pConvert(seg, price, cov, refP, refC) {
+  const s = SEG[seg];
+  const z = logit(BASE_CONVERSION) - s.elast * (price - refP) / Math.max(1, refP) + s.cov * (cov - refC) / COVMAX;
+  return 1 / (1 + Math.exp(-z));
+}
+const ARMS = [
+  { key: "lean", name: "Lean",     cov: 6,  prem: 560, desc: "the basics, cheapest" },
+  { key: "mid",  name: "Balanced", cov: 10, prem: 610, desc: "more cover, a bit more" },
+  { key: "rich", name: "Rich",     cov: 15, prem: 670, desc: "full coverage, top price" },
+];
+const randint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+// ---- engine state: a belief P(you take offer o), learned from YOUR clicks ---------
+// Beta(a,b) per offer, updated each round: chosen -> accept; the rest -> reject; walk -> all reject.
+let post, offers, rounds, covSum, covN, hist, autoTimer;
+function reset() {
+  post = Object.fromEntries(ARMS.map(a => [a.key, { a: 1, b: 1 }]));
+  rounds = 0; covSum = 0; covN = 0; hist = [];
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  newOffers();
+  render(null);
+  document.getElementById("respond").textContent = "Make your first choice to see the engine react…";
+  document.getElementById("roundtag").textContent =
+    "Round 1 · the engine has no idea who you are yet — it leads with the priciest, since richer = more revenue.";
+}
+function newOffers() {
+  offers = ARMS.map(a => ({ ...a, prem: a.prem + randint(-15, 15) }));
+}
+const mean = o => post[o].a / (post[o].a + post[o].b);
+function leadKey() { // the engine's pick = argmax expected revenue = P(take) × premium
+  let best = offers[0], bs = -1;
+  for (const o of offers) { const s = mean(o.key) * o.prem; if (s > bs) { bs = s; best = o; } }
+  return best.key;
+}
+
+function render(pulse) {
+  const lead = leadKey();
+  document.getElementById("opts").innerHTML = offers.map(o => `
+    <button class="opt ${o.key === lead ? "lead" : ""} ${pulse && pulse.key === o.key ? (pulse.type) : ""}"
+            data-arm="${o.key}">
+      <span class="leadbadge">★ engine leads with this</span>
+      <span class="oname">${o.name}</span>
+      <span class="odesc">${o.desc}</span>
+      <span class="covbar"><i style="width:${Math.round(o.cov / COVMAX * 100)}%"></i></span>
+      <span class="covtxt">coverage ${Math.round(o.cov / COVMAX * 100)}% of max</span>
+      <span class="oprem">$${o.prem}<small>/yr</small></span>
+      <span class="obelief">engine thinks you take it ${Math.round(mean(o.key) * 100)}%
+        <span class="bwrap"><i style="width:${Math.round(mean(o.key) * 100)}%"></i></span></span>
+    </button>`).join("");
+  document.querySelectorAll(".opt").forEach(el =>
+    el.addEventListener("click", () => choose(el.dataset.arm)));
+  // profile gauge: where the engine reads you, from the coverage you actually accept
+  const avgCov = covN ? covSum / covN : 10.5;
+  const pos = Math.max(4, Math.min(96, (avgCov - 6) / (15 - 6) * 100));
+  document.getElementById("mark").style.left = (covN ? pos : 50) + "%";
+  // lead readout
+  const lk = offers.find(o => o.key === lead);
+  document.getElementById("leadline").innerHTML =
+    `Engine leads with <b>${lk.name}</b> · expected value $${Math.round(mean(lead) * lk.prem)}/shopper `
+    + `(P you take it ${Math.round(mean(lead) * 100)}% × $${lk.prem}).`;
+  document.getElementById("nRounds").textContent = rounds;
+}
+
+function respond(action, arm) {
+  const lead = leadKey(), lk = ARMS.find(a => a.key === lead).name;
+  const avgCov = covN ? covSum / covN : null;
+  const profile = avgCov == null ? "" :
+    avgCov <= 8 ? "It reads you as <span class='em'>price-driven</span>. " :
+    avgCov >= 12 ? "It reads you as <span class='em'>coverage-driven</span>. " :
+    "It's still reading you. ";
+  let msg;
+  if (action === "walk") {
+    msg = `You <b style="color:var(--price)">walked</b> — too pricey. ${profile}`
+        + `The engine backs off toward a cheaper lead: it now leads with <b>${lk}</b>.`;
+  } else {
+    const nm = ARMS.find(a => a.key === arm).name;
+    const flavour = arm === "lean" ? "You took the cheapest." :
+                    arm === "rich" ? "You reached for full coverage." : "You took the middle option.";
+    msg = `${flavour} ${profile}The engine now leads with <b>${lk}</b> for a shopper like you.`;
+  }
+  document.getElementById("respond").innerHTML = msg;
+  document.getElementById("roundtag").textContent =
+    `Round ${rounds + 1} · offers refresh slightly each round — the engine's lead reflects what it's learned.`;
+}
+
+function record(action, arm) {
+  // update beliefs: chosen accepts, others reject; walk = everyone rejects
+  for (const o of ARMS) {
+    if (action === "buy" && o.key === arm) post[o.key].a += 1;
+    else post[o.key].b += 1;
+  }
+  if (action === "buy") {
+    const o = offers.find(x => x.key === arm);
+    covSum += o.cov; covN += 1;
+    hist.unshift({ txt: `bought ${o.name}`, walk: false });
+  } else {
+    hist.unshift({ txt: "walked", walk: true });
+  }
+  if (hist.length > 20) hist.pop();
+  rounds += 1;
+  renderHistory();
+}
+function renderHistory() {
+  document.getElementById("history").innerHTML = hist.map((h, i) =>
+    `<span class="hchip ${h.walk ? "walk" : ""} ${i === 0 ? "new" : ""}">${h.txt}</span>`).join("");
+}
+
+function choose(arm) {
+  respond("buy", arm);           // narrate against the PRE-update lead so the change is visible
+  record("buy", arm);
+  newOffers();
+  render({ key: arm, type: "chosen" });
+}
+function walk() {
+  respond("walk");
+  record("walk");
+  newOffers();
+  render(null);
+}
+document.getElementById("walk").addEventListener("click", walk);
+document.getElementById("reset").addEventListener("click", reset);
+
+// ---- auto-play: let a calibrated persona do the clicking for you -------------------
+function autoPlay(seg, btn) {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null;
+    document.querySelectorAll(".ctl").forEach(b => b.disabled = false); return; }
+  document.querySelectorAll(".ctl").forEach(b => { if (b !== btn) b.disabled = true; });
+  btn.textContent = "❚❚ Stop auto-play";
+  let k = 0;
+  autoTimer = setInterval(() => {
+    const ref = offers.reduce((m, o) => o.prem < m.prem ? o : m, offers[0]);
+    // persona appeal for each offer; pick the most appealing, then buy with that probability
+    const appeal = offers.map(o => pConvert(seg, o.prem, o.cov, ref.prem, ref.cov));
+    let bi = 0; for (let i = 1; i < appeal.length; i++) if (appeal[i] > appeal[bi]) bi = i;
+    if (Math.random() < appeal[bi]) choose(offers[bi].key); else walk();
+    if (++k >= 22) { clearInterval(autoTimer); autoTimer = null;
+      btn.textContent = seg === "price" ? "▶ Auto-play a price-sensitive shopper" : "▶ Auto-play a coverage-driven shopper";
+      document.querySelectorAll(".ctl").forEach(b => b.disabled = false); }
+  }, 240);
+}
+document.getElementById("autoPrice").addEventListener("click", e => autoPlay("price", e.currentTarget));
+document.getElementById("autoCov").addEventListener("click", e => autoPlay("coverage", e.currentTarget));
+
+document.getElementById("foot").innerHTML =
+  `You are the clickstream here: the engine learns a belief — P(you take each offer) — from your ` +
+  `own clicks and leads with the one that maximises expected revenue. It's the same idea as the ` +
+  `build's Thompson Sampling bandit, run on a single live shopper (you). Offers are illustrative — ` +
+  `a wider premium spread than the real Allstate menus so the effect is easy to see.<br>` +
+  `Auto-play uses a <b>simulated</b> shopper whose choices follow a conversion model calibrated to ` +
+  `published auto-insurance elasticities. Code + write-up: ` +
+  `<a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
+
+reset();
+</script>
