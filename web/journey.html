@@ -29,6 +29,8 @@
   .whobtn:hover { transform:translateY(-2px); } .whobtn:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
   .whobtn.on.price { border-color:var(--price); box-shadow:0 0 0 3px color-mix(in srgb,var(--price) 15%,transparent); }
   .whobtn.on.cov { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 15%,transparent); }
+  .whobtn.on.bal { border-color:var(--bal); box-shadow:0 0 0 3px color-mix(in srgb,var(--bal) 15%,transparent); }
+  .whobtn.bal .tag { background:color-mix(in srgb,var(--bal) 20%,transparent); color:var(--bal); }
   .whobtn .n { font-weight:680; font-size:16px; } .whobtn .n .tag { font-size:11px; font-family:var(--mono); padding:2px 7px; border-radius:6px; margin-left:8px; }
   .whobtn.price .tag { background:color-mix(in srgb,var(--price) 20%,transparent); color:var(--price); }
   .whobtn.cov .tag { background:color-mix(in srgb,var(--cov) 20%,transparent); color:var(--cov); }
@@ -46,7 +48,7 @@
 
   .caption { margin-top:16px; background:var(--card); border:1px solid var(--rule); border-left:4px solid var(--engine);
              border-radius:12px; padding:16px 18px; font-size:16px; line-height:1.5; }
-  .caption b { color:var(--ink); } .caption .em.price { color:var(--price); font-weight:700; } .caption .em.cov { color:var(--cov); font-weight:700; }
+  .caption b { color:var(--ink); } .caption .em.price { color:var(--price); font-weight:700; } .caption .em.coverage { color:var(--cov); font-weight:700; } .caption .em.balanced { color:var(--bal); font-weight:700; }
 
   .stage { margin-top:14px; background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:20px; min-height:280px; }
   .steplab { font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink3); margin-bottom:14px; }
@@ -74,7 +76,8 @@
               background:var(--card2); border:1px solid var(--rule); border-radius:11px; font-family:var(--mono); font-size:13px; }
   .dynprice .dl { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--engine); font-weight:700;
                   border:1px solid var(--engine); border-radius:6px; padding:3px 8px; }
-  .dynprice .dseg b { font-size:16px; } .dynprice b.up { color:var(--cov); } .dynprice b.dn { color:var(--price); }
+  .dynprice .dseg b { font-size:16px; } .dynprice b.up { color:var(--cov); } .dynprice b.dn { color:var(--price); } .dynprice b.flat { color:var(--ink); }
+  .dynprice .ddelta.flat { color:var(--ink2); background:color-mix(in srgb,var(--ink3) 16%,transparent); }
   .dynprice .dar { color:var(--ink3); }
   .dynprice .ddelta { font-weight:700; padding:2px 8px; border-radius:6px; }
   .dynprice .ddelta.up { color:var(--cov); background:color-mix(in srgb,var(--cov) 14%,transparent); }
@@ -94,7 +97,7 @@
   .gauge { position:relative; height:12px; border-radius:7px; background:linear-gradient(90deg,var(--price),var(--bal),var(--cov)); opacity:.85; }
   .gauge .mk { position:absolute; top:-5px; width:6px; height:22px; border-radius:3px; background:var(--ink); border:2px solid var(--card); left:50%;
                transition:left .6s cubic-bezier(.4,1.2,.5,1); }
-  .readnow { margin-top:9px; font-size:14px; color:var(--ink2); } .readnow b.price{color:var(--price);} .readnow b.cov{color:var(--cov);} .readnow b.balanced{color:var(--bal);}
+  .readnow { margin-top:9px; font-size:14px; color:var(--ink2); } .readnow b.price{color:var(--price);} .readnow b.coverage{color:var(--cov);} .readnow b.balanced{color:var(--bal);}
 
   .lookup { display:flex; gap:16px; flex-wrap:wrap; font-family:var(--mono); font-size:12.5px; color:var(--ink2); margin-bottom:14px; }
   .lookup b { color:var(--ink); }
@@ -123,10 +126,11 @@
 <div class="wrap">
   <header>
     <p class="eyebrow">A guided journey &#183; two shoppers, one engine</p>
-    <h1>Watch the engine <em>steer two different shoppers</em> to the right coverage</h1>
-    <p class="lede">Same engine, two people. Each enters their details, gets an opening offer, and starts
+    <h1>Watch the engine <em>steer three different shoppers</em> to the right coverage &amp; price</h1>
+    <p class="lede">Same engine, three people. Each enters their details, gets an opening offer, and starts
       clicking. The engine reads the clicks and steers &#8212; the price shopper to a lean quote it can
-      actually close, the coverage shopper up to richer cover they'll happily pay for. Pick one and press play.</p>
+      actually close, the coverage shopper up to richer cover they'll happily pay for, and the one in
+      between to a fair standard price. Pick one and press play.</p>
   </header>
 
   <div class="who" id="who"></div>
@@ -157,12 +161,16 @@ const costPrice=cov=>Math.round(470+13.5*cov);
 const covpct=c=>Math.round(c/COVMAX*100);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const argmax=o=>Object.keys(o).reduce((a,b)=>o[a]>=o[b]?a:b);
-const PERSONA={ price:{covTaste:0.15,priceElast:3.2}, balanced:{covTaste:0.32,priceElast:1.8}, coverage:{covTaste:0.55,priceElast:0.9} };
+// persona response: base conversion `a`, coverage taste, price elasticity
+const PERSONA={ price:{a:0.6,covTaste:0.15,priceElast:3.4}, balanced:{a:1.1,covTaste:0.20,priceElast:0.66}, coverage:{a:0.6,covTaste:0.55,priceElast:0.9} };
 const NAME={price:"price-driven",balanced:"balanced",coverage:"coverage-driven"};
-function pBuy(q,premium,cov){ const p=PERSONA[q],ref=costPrice(STD_COV);
-  return 1/(1+Math.exp(-(0.6+p.covTaste*(cov-STD_COV)-p.priceElast*(premium-ref)/100))); }
-function engineOffer(q){ let best=null; for(const cov of [6,10,15]) for(let m=-20;m<=90;m+=10){
-  const premium=costPrice(cov)+m,pc=pBuy(q,premium,cov),rev=pc*premium; if(!best||rev>best.rev) best={cov,premium,pc,rev}; } return best; }
+const TIER_FOR={price:"lean",balanced:"bal",coverage:"rich"};   // the clicks reveal the coverage
+function pBuy(q,premium,cov){ const p=PERSONA[q];
+  return 1/(1+Math.exp(-(p.a+p.covTaste*(cov-STD_COV)-p.priceElast*(premium-costPrice(STD_COV))/100))); }
+// engine steers to the persona's tier, then sets a demand-based price ON that tier
+function engineOffer(q){ const cov=OFF[TIER_FOR[q]].cov; let best=null;
+  for(let m=-40;m<=90;m+=5){ const premium=costPrice(cov)+m,pc=pBuy(q,premium,cov),rev=pc*premium;
+    if(!best||rev>best.rev) best={cov,premium,pc,rev}; } return best; }
 // realistic auto-insurance tiers (limits/deductibles are illustrative; the dataset
 // encodes coverage as option levels A-G, not dollar amounts). cov = internal index.
 const OFF={
@@ -173,11 +181,14 @@ const OFF={
 for(const k in OFF) OFF[k].premium=costPrice(OFF[k].cov);
 function covTier(pct){ return pct<=46?"leaner, near-state-minimum limits":pct>=62?"high limits ($250K+ / full cover)":"standard limits ($100K/$300K)"; }
 
-// two scripted shoppers, each backed by a REAL demographic cell + a true persona
+// three scripted shoppers spanning the spectrum, each backed by a REAL demographic cell
 const SHOPPERS={
   dana:{ name:"Dana", cls:"price", truth:"price", age:"24", home:"renter", car:"low value",
     cell:{n:625, prior:{price:0.28,balanced:0.43,coverage:0.29}, avg_cov:42},
     clicks:[{k:"lean",take:true},{k:"rich",take:false},{k:"bal",take:false}] },
+  sam:{ name:"Sam", cls:"bal", truth:"balanced", age:"38", home:"homeowner", car:"mid value",
+    cell:{n:12154, prior:{price:0.26,balanced:0.26,coverage:0.47}, avg_cov:57},
+    clicks:[{k:"bal",take:true},{k:"rich",take:false},{k:"lean",take:false}] },
   carla:{ name:"Carla", cls:"cov", truth:"coverage", age:"62", home:"homeowner", car:"high value",
     cell:{n:2446, prior:{price:0.22,balanced:0.24,coverage:0.54}, avg_cov:67},
     clicks:[{k:"rich",take:true},{k:"bal",take:true},{k:"lean",take:false}] },
@@ -212,25 +223,28 @@ let who="dana", beat=0, timer=null;
 const S=()=>SHOPPERS[who];
 const NBEATS=7;   // 0 arrive,1 details,2 offer,3-5 clicks,6 steer+close
 
-// running belief from the clicks revealed so far
-function beliefAfter(nClicks){
-  const s=S(), prior=s.cell.prior, post={}; let Z=0;
-  for(const q of ["price","balanced","coverage"]){ let L=1;
-    for(let j=0;j<nClicks;j++){ const c=s.clicks[j], o=OFF[c.k], pc=pBuy(q,o.premium,o.cov); L*= c.take?pc:(1-pc); }
-    post[q]=prior[q]*L; Z+=post[q]; }
-  for(const q in post) post[q]/=Z; return post;
+// the engine's read from the clicks so far: it gravitates to the coverage they engage with
+function readAfter(nClicks){
+  const s=S(); let sum=0, cnt=0;
+  for(let j=0;j<nClicks;j++){ const c=s.clicks[j]; if(c.take){ sum+=OFF[c.k].cov; cnt++; } }
+  const avg = cnt ? sum/cnt : (nClicks ? 6 : STD_COV);   // only-passes so far -> leans cheap
+  const lean = clamp((avg-6)/(15-6), 0, 1);              // 0 price .. 1 coverage
+  const persona = avg<=7.5 ? "price" : avg>=11.5 ? "coverage" : "balanced";
+  const conf = clamp(0.55 + 0.11*nClicks + 0.04*cnt, 0.55, 0.9);
+  return { persona, lean, conf };
 }
+// demographic-only lean for the opening gauge, from the lookalikes' average coverage
+function priorLean(cell){ return clamp((cell.avg_cov/100*COVMAX-6)/(15-6), 0, 1); }
 
 function renderWho(){
   document.getElementById("who").innerHTML=Object.entries(SHOPPERS).map(([k,s])=>
     `<button class="whobtn ${s.cls} ${k===who?"on":""}" data-k="${k}">
-      <div class="n">${s.name}<span class="tag">${s.truth==="price"?"price-driven":"coverage-driven"}</span></div>
+      <div class="n">${s.name}<span class="tag">${NAME[s.truth]}</span></div>
       <div class="d">${s.age} &#183; ${s.home} &#183; ${s.car} car</div></button>`).join("");
   document.querySelectorAll(".whobtn").forEach(b=>b.addEventListener("click",()=>{ who=b.dataset.k; restart(); }));
 }
 
-function gauge(post){ const lean=(post.coverage-post.price); // -1..1
-  return clamp((lean+1)/2*100,4,96); }
+function gauge(leanPos){ return clamp(leanPos*100,4,96); }
 
 function render(){
   const s=S();
@@ -241,8 +255,9 @@ function render(){
   // helper to draw the 3 offers with per-offer state {lead,take,pass,steer}
   const offersHTML=(state,override)=>`<div class="offers">`+["lean","bal","rich"].map(k=>{const o=OFF[k],st=state[k]||"";
     const isOv=override&&override.key===k;
-    const opHTML=isOv ? `<span class="list">$${o.premium}</span> <b>$${override.premium}</b><small>/yr</small>`
-                      : `$${o.premium}<small>/yr</small>`;
+    const opHTML=(isOv && override.premium!==o.premium)
+                      ? `<span class="list">$${o.premium}</span> <b>$${override.premium}</b><small>/yr</small>`
+                      : `$${(isOv?override.premium:o.premium)}<small>/yr</small>`;
     return `<div class="off ${st}">
       <span class="flag lead">engine opens here</span><span class="flag take">clicked</span>
       <span class="flag pass">skipped</span><span class="flag steer">steered here</span>
@@ -250,17 +265,17 @@ function render(){
       <div class="obar"><i style="width:${covpct(o.cov)}%"></i></div>
       <div class="oc2">${o.extra}</div><div class="op">${opHTML}</div></div>`;}).join("")+`</div>`;
 
-  const gaugeHTML=(post,label)=>`<div class="gaugewrap"><div class="gl"><span>price-driven</span><span>coverage-driven</span></div>
-    <div class="gauge"><div class="mk" style="left:${gauge(post)}%"></div></div><div class="readnow">${label}</div></div>`;
+  const gaugeHTML=(leanPos,label)=>`<div class="gaugewrap"><div class="gl"><span>price-driven</span><span>coverage-driven</span></div>
+    <div class="gauge"><div class="mk" style="left:${gauge(leanPos)}%"></div></div><div class="readnow">${label}</div></div>`;
 
   if(beat===0){
-    cap.innerHTML=`Meet <b>${s.name}</b> &#8212; ${s.age}, a ${s.home} with a ${s.car} car. She lands on the quote page.`;
+    cap.innerHTML=`Meet <b>${s.name}</b> &#8212; ${s.age}, a ${s.home} with a ${s.car} car. They land on the quote page.`;
     stage.innerHTML=`<div class="steplab">Step 1 &#183; the shopper arrives</div><div class="form">
       <div class="fpill"><div class="fl">Age</div><div class="fv">&#8212;</div></div>
       <div class="fpill"><div class="fl">Home</div><div class="fv">&#8212;</div></div>
       <div class="fpill"><div class="fl">Car value</div><div class="fv">&#8212;</div></div></div>`;
   } else if(beat===1){
-    cap.innerHTML=`<b>${s.name}</b> enters her details. On demographics alone the engine can guess coverage &#8212; but not who'll walk on price.`;
+    cap.innerHTML=`<b>${s.name}</b> enters their details. On demographics alone the engine can guess coverage &#8212; but not who'll walk on price.`;
     stage.innerHTML=`<div class="steplab">Step 1 &#183; enters demographics</div><div class="form">
       <div class="fpill fill"><div class="fl">Age</div><div class="fv">${s.age}</div></div>
       <div class="fpill fill"><div class="fl">Home</div><div class="fv">${s.home}</div></div>
@@ -273,34 +288,36 @@ function render(){
     stage.innerHTML=`<div class="steplab">Step 2 &#183; opening offer, from lookalikes</div>
       <div class="lookup"><span><b>${s.cell.n.toLocaleString()}</b> lookalikes</span><span>typically bought <b>${covTier(s.cell.avg_cov)}</b></span>
       <span>price-driven share <b>${Math.round(s.cell.prior.price*100)}%</b> &#8212; can't tell from this alone</span></div>
-      ${offersHTML({[opener]:"lead"})}${gaugeHTML(s.cell.prior, `Starting guess from demographics: leans ${NAME[argmax(s.cell.prior)]}.`)}`;
+      ${offersHTML({[opener]:"lead"})}${gaugeHTML(priorLean(s.cell), `Demographics point to <b>${covTier(s.cell.avg_cov)}</b> &#8212; but not the price sensitivity.`)}`;
   } else if(beat>=3 && beat<=5){
     const ci=beat-3, c=s.clicks[ci], shown=s.clicks.slice(0,ci+1);
     const state={}; shown.forEach(x=>state[x.k]=x.take?"take":"pass");
-    const post=beliefAfter(ci+1); const o=OFF[c.k];
+    const r=readAfter(ci+1); const o=OFF[c.k];
     cap.innerHTML=`${s.name} ${c.take?`<b>clicks the ${o.name} plan</b>`:`<b>skips the ${o.name} plan</b>`}
       (${o.limits}, $${o.premium}/yr). ${ci===2?`The picture is clear now.`:`The engine updates its read.`}`;
     stage.innerHTML=`<div class="steplab">Step 3 &#183; track the clicks (${ci+1} of 3)</div>
-      ${offersHTML(state)}${gaugeHTML(post, `Reading ${s.name} as <b class="${argmax(post)}">${NAME[argmax(post)]}</b> (${Math.round(post[argmax(post)]*100)}% sure).`)}`;
+      ${offersHTML(state)}${gaugeHTML(r.lean, `Reading ${s.name} as <b class="${r.persona}">${NAME[r.persona]}</b> (${Math.round(r.conf*100)}% sure).`)}`;
   } else {
-    const post=beliefAfter(3), conf=argmax(post), eng=engineOffer(conf);
-    const steerK= eng.cov<=7?"lean":eng.cov>=13?"rich":"bal";
+    const r=readAfter(3), conf=r.persona, eng=engineOffer(conf);
+    const steerK=TIER_FOR[conf];
     const flatPrem=costPrice(STD_COV);
     const state={}; s.clicks.forEach(x=>state[x.k]=x.take?"take":"pass"); state[steerK]="steer";
-    const listPrem=OFF[steerK].premium, delta=eng.premium-listPrem, dir=delta<0?"dn":"up";
+    const listPrem=OFF[steerK].premium, delta=eng.premium-listPrem, dir=delta<0?"dn":delta>0?"up":"flat";
     cap.innerHTML=`Confirmed <b class="em ${conf}">${NAME[conf]}</b>. Two moves: <b>steer</b> ${s.name} to the
       <b>${OFF[steerK].name}</b> plan, then <b>price it dynamically</b> at <b>$${eng.premium}</b>
-      (${delta<0?`$${-delta} below`:`$${delta} above`} the $${listPrem} list).`;
+      (${delta<0?`$${-delta} below`:delta>0?`$${delta} above`:`right at`} the $${listPrem} list).`;
     let why = conf==="price"
-      ? `A flat <b>$${flatPrem}</b> quote would have been too high &#8212; ${s.name} walks. The engine's <b>$${eng.premium}</b> keeps her.`
-      : `A flat <b>$${flatPrem}</b> quote leaves about <b>$${eng.premium-flatPrem}</b> on the table &#8212; ${s.name} would have paid more.`;
+      ? `A flat <b>$${flatPrem}</b> quote would have been too high &#8212; ${s.name} walks. The engine's <b>$${eng.premium}</b> keeps the sale.`
+      : conf==="coverage"
+      ? `A flat <b>$${flatPrem}</b> quote leaves about <b>$${eng.premium-flatPrem}</b> on the table &#8212; ${s.name} would have paid more.`
+      : `${s.name} sits in the middle &#8212; not price-sensitive enough to discount, not coverage-hungry enough to mark up. The list price is already right. <b>Personalization pays most at the extremes.</b>`;
     stage.innerHTML=`<div class="steplab">Step 4 &#183; steer the coverage, then set the price</div>
-      ${offersHTML(state,{key:steerK,premium:eng.premium})}${gaugeHTML(post,`Confirmed <b class="${conf}">${NAME[conf]}</b> (${Math.round(post[conf]*100)}% sure).`)}
+      ${offersHTML(state,{key:steerK,premium:eng.premium})}${gaugeHTML(r.lean,`Confirmed <b class="${conf}">${NAME[conf]}</b> (${Math.round(r.conf*100)}% sure).`)}
       <div class="dynprice"><span class="dl">Dynamic price</span>
         <span class="dseg">list <b>$${listPrem}</b></span><span class="dar">&#8594;</span>
         <span class="dseg">${s.name}'s price <b class="${dir}">$${eng.premium}</b></span>
-        <span class="ddelta ${dir}">${delta<0?"":"+"}$${delta}</span>
-        <span class="dwhy">${conf==="price"?"discount to convert a price-sensitive shopper":"markup a coverage-lover will accept"}</span></div>
+        <span class="ddelta ${dir}">${delta<0?"":delta>0?"+":""}${delta===0?"holds":"$"+delta}</span>
+        <span class="dwhy">${conf==="price"?"discount to convert a price-sensitive shopper":conf==="coverage"?"markup a coverage-lover will accept":"no move needed &#8212; the standard price is already right"}</span></div>
       <div class="close show"><b>Sale closed &#8212;</b> <span class="big">${OFF[steerK].name} plan (${OFF[steerK].limits}) at $${eng.premium}/yr</span>. ${why}</div>`;
   }
   renderPipe(beat);
