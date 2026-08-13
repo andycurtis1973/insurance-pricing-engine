@@ -1,4 +1,4 @@
-<title>Replay a real shopper's clickstream &#8212; and close the sale</title>
+<title>How the engine prices a new shopper: lookalikes, then clicks</title>
 <style>
   :root {
     color-scheme: light;
@@ -8,372 +8,261 @@
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) {
-      color-scheme: dark;
-      --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
-      --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
-      --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637;
-    }
-  }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+  @media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) {
+    color-scheme: dark; --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
     --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
-    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637;
-  }
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637; } }
+  :root[data-theme="dark"] { color-scheme: dark; --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+    --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
-         line-height:1.55; -webkit-font-smoothing:antialiased; }
-  .wrap { max-width:1080px; margin:0 auto; padding:40px 22px 80px; }
-  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
-             text-transform:uppercase; color:var(--ink3); margin:0 0 12px; }
-  h1 { font-size:clamp(25px,3.8vw,36px); line-height:1.14; letter-spacing:-.02em;
-       margin:0 0 14px; font-weight:640; text-wrap:balance; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:940px; margin:0 auto; padding:40px 22px 80px; }
+  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); margin:0 0 12px; }
+  h1 { font-size:clamp(24px,3.6vw,34px); line-height:1.15; letter-spacing:-.02em; margin:0 0 14px; font-weight:640; text-wrap:balance; }
   h1 em { font-style:normal; color:var(--engine); }
-  .lede { font-size:16px; color:var(--ink2); margin:0; max-width:78ch; }
+  .lede { font-size:16px; color:var(--ink2); margin:0 0 6px; max-width:82ch; }
   .lede b { color:var(--ink); font-weight:600; }
+  .simnote { font-family:var(--mono); font-size:12px; color:var(--gold); margin:8px 0 0; }
 
-  .tabs { display:flex; flex-wrap:wrap; gap:9px; margin:24px 0 0; }
-  .tab { cursor:pointer; font-family:var(--sans); text-align:left; background:var(--card);
-         border:1.5px solid var(--rule); border-radius:11px; padding:11px 15px; color:var(--ink);
-         transition:border-color .15s ease, transform .1s ease; }
-  .tab:hover { transform:translateY(-2px); } .tab:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
-  .tab.on { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 16%,transparent); }
-  .tab b { display:block; font-size:14.5px; font-weight:660; }
-  .tab span { font-family:var(--mono); font-size:11px; color:var(--ink3); }
+  .picker { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin:24px 0 6px;
+            padding:16px; background:var(--card); border:1px solid var(--rule); border-radius:13px; }
+  .fld { display:flex; flex-direction:column; gap:5px; }
+  .fld label { font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink3); }
+  select { font-family:var(--sans); font-size:14px; padding:9px 11px; border-radius:9px; border:1px solid var(--rule);
+           background:var(--card2); color:var(--ink); cursor:pointer; }
+  button { font-family:var(--sans); font-size:14px; font-weight:600; cursor:pointer; border:1px solid var(--rule);
+           background:var(--card2); color:var(--ink); padding:10px 16px; border-radius:9px; }
+  button.run { background:var(--engine); color:#fff; border-color:var(--engine); }
+  button:hover { filter:brightness(1.06); } button:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
 
-  .stage { margin-top:18px; background:var(--card); border:1px solid var(--rule); border-radius:16px; padding:20px 22px; }
-  .who { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
-  .who h2 { font-size:18px; margin:0; font-weight:640; }
-  .who .real { font-family:var(--mono); font-size:11px; color:var(--ink3);
-               background:var(--card2); padding:2px 8px; border-radius:6px; }
-  .who .traits { font-size:13px; color:var(--ink2); }
-  .streamlabel { font-family:var(--mono); font-size:11px; color:var(--ink3); text-transform:uppercase;
-                 letter-spacing:.06em; margin:16px 0 10px; }
+  .step { margin-top:14px; background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:18px 20px;
+          opacity:.45; transition:opacity .3s ease; }
+  .step.on { opacity:1; }
+  .step .sh { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+  .step .num { font-family:var(--mono); font-size:12px; font-weight:700; color:#fff; background:var(--engine);
+               width:22px; height:22px; border-radius:6px; display:grid; place-items:center; flex:none; }
+  .step h2 { font-size:16px; margin:0; font-weight:640; } .step .sub { font-size:13px; color:var(--ink3); }
 
-  .stream { display:flex; align-items:stretch; gap:0; overflow-x:auto; padding-bottom:6px; }
-  .qwrap { display:flex; align-items:center; }
-  .arrow { font-family:var(--mono); font-size:20px; padding:0 4px; align-self:center; }
-  .arrow.up { color:var(--cov); } .arrow.down { color:var(--price); } .arrow.flat { color:var(--ink3); }
-  .chip { min-width:104px; background:var(--card2); border:1.5px solid var(--rule); border-radius:11px;
-          padding:11px 12px; text-align:center; animation:pop .3s ease; }
-  .chip.cur { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 18%,transparent); }
-  .chip.bought { border-color:var(--gold); background:color-mix(in srgb,var(--gold) 12%,var(--card2)); }
-  @keyframes pop { 0%{transform:scale(.6);opacity:0;} 100%{transform:scale(1);opacity:1;} }
-  .chip .step { font-family:var(--mono); font-size:9.5px; color:var(--ink3); text-transform:uppercase; letter-spacing:.05em; }
-  .chip .cov { height:7px; border-radius:4px; background:var(--rule); overflow:hidden; margin:6px 0 5px; }
-  .chip .cov > i { display:block; height:100%; background:var(--engine); border-radius:4px; }
-  .chip .covn { font-family:var(--mono); font-size:11px; color:var(--ink2); }
-  .chip .price { font-family:var(--mono); font-weight:700; font-size:17px; margin-top:3px; font-variant-numeric:tabular-nums; }
-  .chip.bought .price { color:var(--gold); }
-  .chip .bt { font-family:var(--mono); font-size:9.5px; color:var(--gold); text-transform:uppercase; letter-spacing:.05em; }
-  .chip .tag { font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.04em; margin:3px 0 1px; }
-  .chip .tag.move { color:var(--engine); } .chip .tag.rq, .chip .tag.open { color:var(--ink3); }
-  .chip.req { opacity:.62; border-style:dashed; } .chip.req.cur { opacity:1; }
-  .arrow.rq { color:var(--ink3); opacity:.65; font-size:16px; }
-  .streamkey { display:flex; flex-wrap:wrap; gap:6px 16px; margin:10px 0 0; font-family:var(--mono);
-               font-size:11px; color:var(--ink3); }
-  .streamkey b { font-size:14px; } .streamkey b.up { color:var(--cov); }
-  .streamkey b.down { color:var(--price); } .streamkey b.rq { color:var(--ink3); }
-  .streamkey .k3 { color:var(--ink3); opacity:.8; }
+  .mix { display:flex; height:30px; border-radius:8px; overflow:hidden; margin:8px 0 6px; border:1px solid var(--rule); }
+  .mix > span { display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:#fff; font-weight:600; }
+  .mix .p { background:var(--price); } .mix .b { background:var(--bal); } .mix .c { background:var(--cov); }
+  .lkstat { display:flex; flex-wrap:wrap; gap:16px; font-family:var(--mono); font-size:12.5px; color:var(--ink2); margin-top:8px; }
+  .lkstat b { color:var(--ink); }
+  .note { font-size:13.5px; color:var(--ink2); margin-top:10px; padding-left:12px; border-left:3px solid var(--gold); }
+  .note b { color:var(--ink); }
 
-  .readgrid { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; margin-top:20px; }
-  @media (max-width:720px){ .readgrid { grid-template-columns:1fr; } }
-  .box { background:var(--card2); border:1px solid var(--rule); border-radius:12px; padding:16px 17px; }
-  .box h3 { font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-            color:var(--ink3); margin:0 0 12px; }
-  .gauge .track { position:relative; height:12px; border-radius:7px;
-                  background:linear-gradient(90deg,var(--price),var(--bal),var(--cov)); opacity:.85; }
-  .gauge .mark { position:absolute; top:-5px; width:6px; height:22px; border-radius:3px; background:var(--ink);
-                 border:2px solid var(--card2); transition:left .5s cubic-bezier(.4,1.2,.5,1); left:50%; }
-  .gauge .glab { display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px;
-                 color:var(--ink3); margin-top:8px; }
-  .readtype { font-size:16px; font-weight:640; margin:14px 0 6px; }
-  .readtype.price { color:var(--price); } .readtype.cov { color:var(--cov); } .readtype.bal { color:var(--bal); }
-  .rationale { font-size:14px; color:var(--ink2); min-height:42px; }
+  .tests { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media (max-width:620px){ .tests { grid-template-columns:1fr; } }
+  .test { border:1.5px solid var(--rule); border-radius:11px; padding:12px; text-align:center; background:var(--card2); transition:border-color .2s; }
+  .test .tn { font-weight:660; font-size:14px; } .test .tc { font-family:var(--mono); font-size:11px; color:var(--ink3); margin:3px 0 6px; }
+  .test .tp { font-family:var(--mono); font-weight:700; font-size:17px; }
+  .test .resp { margin-top:9px; font-family:var(--mono); font-size:12px; font-weight:700; padding:4px; border-radius:6px; }
+  .test.yes { border-color:var(--cov); } .test.yes .resp { color:var(--cov); }
+  .test.no .resp { color:var(--price); opacity:.85; } .test .resp.q { color:var(--ink3); }
 
-  .surface { text-align:center; }
-  .surface .off { border:2px solid var(--engine); border-radius:12px; padding:14px; background:var(--card);
-                  box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 14%,transparent); }
-  .surface .off .lab { font-family:var(--mono); font-size:10.5px; color:var(--engine); text-transform:uppercase;
-                       letter-spacing:.05em; margin-bottom:6px; }
-  .surface .off .name { font-size:16px; font-weight:680; }
-  .surface .off .det { font-family:var(--mono); font-size:13px; color:var(--ink2); margin-top:4px; }
-  .surface .why { font-size:12.5px; color:var(--ink3); margin-top:10px; }
+  .beliefs { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:620px){ .beliefs { grid-template-columns:1fr; } }
+  .brow { display:grid; grid-template-columns:78px 1fr 40px; gap:8px; align-items:center; margin-bottom:6px; font-family:var(--mono); font-size:12px; }
+  .brow .bt { position:relative; height:16px; background:var(--card2); border-radius:5px; overflow:hidden; }
+  .brow .bf { position:absolute; left:0; top:0; height:100%; border-radius:5px; transition:width .5s ease; }
+  .bf.price { background:var(--price); } .bf.balanced { background:var(--bal); } .bf.coverage { background:var(--cov); }
+  .bcap { font-family:var(--mono); font-size:11px; color:var(--ink3); margin-bottom:8px; }
+  .verdict { margin-top:12px; font-size:15px; } .verdict b.price { color:var(--price); } .verdict b.coverage { color:var(--cov); } .verdict b.balanced { color:var(--bal); }
 
-  .close { margin-top:16px; border:1px solid var(--rule); border-left:3px solid var(--cov);
-           background:var(--card); border-radius:12px; padding:16px 18px; display:none; }
-  .close.show { display:block; animation:pop .35s ease; }
-  .close h3 { margin:0 0 8px; font-size:16px; }
-  .close .cmp { display:flex; gap:22px; flex-wrap:wrap; font-family:var(--mono); font-size:13.5px; margin-bottom:8px; }
-  .close .cmp b { color:var(--ink); }
-  .close .match { color:var(--cov); font-weight:700; }
-  .close .take { font-size:14.5px; color:var(--ink); }
-  .close .take b { color:var(--engine); }
+  .final { display:grid; grid-template-columns:auto 1fr; gap:18px; align-items:center; }
+  @media (max-width:620px){ .final { grid-template-columns:1fr; } }
+  .offcard { border:2px solid var(--engine); border-radius:12px; padding:16px; text-align:center; background:var(--card);
+             box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 14%,transparent); min-width:170px; }
+  .offcard .ol { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--engine); }
+  .offcard .oc { font-family:var(--mono); font-size:12px; color:var(--ink2); margin:4px 0; }
+  .offcard .op { font-family:var(--mono); font-weight:800; font-size:26px; }
+  .offcard .om { font-size:12px; color:var(--ink2); margin-top:6px; }
+  .rbar { display:grid; grid-template-columns:150px 1fr; gap:10px; align-items:center; margin-bottom:8px; }
+  .rbar .lab { font-size:12.5px; color:var(--ink2); text-align:right; }
+  .rbar .tk { position:relative; background:var(--card2); border-radius:7px; height:30px; overflow:hidden; }
+  .rbar .fl { position:absolute; left:0; top:0; height:100%; border-radius:7px; display:flex; align-items:center; justify-content:flex-end;
+              padding-right:9px; font-family:var(--mono); font-weight:700; font-size:12.5px; color:#fff; transition:width .5s ease; }
+  .fl.flat { background:var(--ink3); } .fl.prior { background:var(--bal); } .fl.eng { background:var(--engine); }
+  .liftline { margin-top:8px; font-size:14px; } .liftline b { color:var(--cov); }
 
-  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:16px; }
-  button.ctl { font-family:var(--sans); font-size:14px; font-weight:600; cursor:pointer; border:1px solid var(--rule);
-               background:var(--card2); color:var(--ink); padding:10px 16px; border-radius:9px; }
-  button.ctl.run { background:var(--engine); color:#fff; border-color:var(--engine); }
-  button.ctl:hover { filter:brightness(1.06); } button.ctl:disabled { opacity:.5; cursor:default; }
-  button.ctl:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
-
-  footer { margin-top:30px; padding-top:18px; border-top:1px solid var(--rule); color:var(--ink3);
-           font-size:12.5px; font-family:var(--mono); line-height:1.85; }
+  footer { margin-top:28px; padding-top:18px; border-top:1px solid var(--rule); color:var(--ink3); font-size:12.5px; font-family:var(--mono); line-height:1.85; }
   footer a { color:var(--engine); }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
 </style>
 
 <div class="wrap">
   <header>
-    <p class="eyebrow">Interactive &#183; real Allstate clickstreams</p>
-    <h1>Replay a real shopper's clicks &#8212; <em>and watch the engine close the sale</em></h1>
-    <p class="lede">These are <b>real</b> people shopping for car insurance: each viewed a string of
-      quotes &#8212; nudging coverage up or down and watching the price move &#8212; before buying. Play a
-      session click by click. The engine reads the <b>trajectory</b>, works out whether they're
-      price- or coverage-driven, and surfaces the offer that closes the sale. Then compare its call
-      to what they actually bought.</p>
+    <p class="eyebrow">The real loop &#183; lookalike prior &#8594; test offers &#8594; confirm &#8594; price</p>
+    <h1>How the engine prices a shopper it has <em>never seen</em></h1>
+    <p class="lede">A new shopper lands. Step one: look up <b>what real people like them bought</b> &#8212;
+      a warm start from demographics. But that only guesses <b>coverage</b>; it can't tell who'll walk on
+      price. So step two: <b>float a few test offers</b> and read the responses. Step three: those clicks
+      <b>confirm the persona</b>. Step four: <b>lock the price</b>. Set a profile and run one through.</p>
+    <p class="simnote">The lookalike prior (step 1) is REAL &#8212; 96,882 Allstate shoppers. The shopper's
+      hidden persona is drawn from that cell's real mix; their responses to test offers are modeled
+      (calibrated + disclosed). It shows the mechanism.</p>
   </header>
 
-  <div class="tabs" id="tabs"></div>
-
-  <div class="stage">
-    <div class="who" id="who"></div>
-    <div class="streamlabel">Their real clickstream &#8212; one quote at a time</div>
-    <div class="stream" id="stream"></div>
-    <div class="streamkey">
-      <span><b class="up">&#8593;</b> added coverage</span>
-      <span><b class="down">&#8595;</b> cut coverage</span>
-      <span class="k3">&#8212; calculator moves the engine reads</span>
-      <span><b class="rq">=</b> re-quote, same plan</span>
-      <span class="k3">&#8212; price noise it ignores</span>
-    </div>
-
-    <div class="readgrid">
-      <div class="box">
-        <h3>What the engine reads</h3>
-        <div class="gauge"><div class="track"><div class="mark" id="mark"></div></div>
-          <div class="glab"><span>price-driven</span><span id="gmid">reading&#8230;</span><span>coverage-driven</span></div></div>
-        <div class="readtype" id="readtype">Press Play or Step to begin</div>
-        <div class="rationale" id="rationale">Each quote they view is a clue. The engine watches which way they move.</div>
-      </div>
-      <div class="box surface">
-        <h3>Offer the engine surfaces to close</h3>
-        <div class="off">
-          <div class="lab">Engine leads with</div>
-          <div class="name" id="offName">&#8212;</div>
-          <div class="det" id="offDet">waiting for the first clicks&#8230;</div>
-        </div>
-        <div class="why" id="offWhy"></div>
-      </div>
-    </div>
-
-    <div class="close" id="close"></div>
-
-    <div class="controls">
-      <button class="ctl run" id="play">&#9654; Play the session</button>
-      <button class="ctl" id="step">&#9197; Step</button>
-      <button class="ctl" id="reset">&#10226; Reset</button>
-    </div>
+  <div class="picker">
+    <div class="fld"><label>Age</label><select id="age">
+      <option value="under25">under 25</option><option value="25to44" selected>25&#8211;44</option>
+      <option value="45to64">45&#8211;64</option><option value="65plus">65+</option></select></div>
+    <div class="fld"><label>Home</label><select id="home">
+      <option value="renter">renter</option><option value="owner" selected>homeowner</option></select></div>
+    <div class="fld"><label>Car value</label><select id="car">
+      <option value="low">low</option><option value="mid" selected>mid</option><option value="high">high</option></select></div>
+    <button class="run" id="run">&#9654; Run this shopper</button>
+    <button id="rand">New random shopper</button>
   </div>
+
+  <div class="step" id="s1"><div class="sh"><span class="num">1</span>
+    <h2>Who just landed &#8212; the lookalike prior</h2><span class="sub" id="s1sub"></span></div>
+    <div class="mix" id="mix"></div>
+    <div class="lkstat" id="lkstat"></div>
+    <div class="note" id="s1note"></div></div>
+
+  <div class="step" id="s2"><div class="sh"><span class="num">2</span>
+    <h2>Float a few test offers</h2><span class="sub">the engine probes lean / balanced / rich and watches the response</span></div>
+    <div class="tests" id="tests"></div></div>
+
+  <div class="step" id="s3"><div class="sh"><span class="num">3</span>
+    <h2>Confirm the persona from the responses</h2><span class="sub">the clicks update the demographic prior</span></div>
+    <div class="beliefs">
+      <div><div class="bcap">PRIOR &#8212; from demographics alone</div><div id="prior"></div></div>
+      <div><div class="bcap">CONFIRMED &#8212; after the test offers</div><div id="post"></div></div>
+    </div>
+    <div class="verdict" id="verdict"></div></div>
+
+  <div class="step" id="s4"><div class="sh"><span class="num">4</span>
+    <h2>Lock the price &#8212; and the payoff</h2><span class="sub">expected revenue per shopper, across everyone in this cell</span></div>
+    <div class="final">
+      <div class="offcard"><div class="ol">Engine's quote</div>
+        <div class="oc" id="foff_c"></div><div class="op" id="foff_p"></div><div class="om" id="foff_m"></div></div>
+      <div>
+        <div class="rbar"><div class="lab">flat cost-based price</div><div class="tk"><div class="fl flat" id="r_flat"></div></div></div>
+        <div class="rbar"><div class="lab">demographic prior only</div><div class="tk"><div class="fl prior" id="r_prior"></div></div></div>
+        <div class="rbar"><div class="lab">engine (test + confirm)</div><div class="tk"><div class="fl eng" id="r_eng"></div></div></div>
+        <div class="liftline" id="liftline"></div>
+      </div>
+    </div></div>
 
   <footer id="foot"></footer>
 </div>
 
+<script id="lookalikes" type="application/json">{"25to44|owner|high":{"n":4618,"price":0.256,"balanced":0.245,"coverage":0.498,"avg_cov_pct":61.2,"avg_premium":641,"pct_cheapest":25.6,"pct_richest":63.5},"25to44|owner|low":{"n":406,"price":0.278,"balanced":0.404,"coverage":0.318,"avg_cov_pct":46.1,"avg_premium":597,"pct_cheapest":27.8,"pct_richest":38.4},"25to44|owner|mid":{"n":12154,"price":0.264,"balanced":0.263,"coverage":0.473,"avg_cov_pct":57.1,"avg_premium":625,"pct_cheapest":26.4,"pct_richest":59.6},"25to44|renter|high":{"n":3518,"price":0.225,"balanced":0.321,"coverage":0.454,"avg_cov_pct":56.4,"avg_premium":659,"pct_cheapest":22.5,"pct_richest":55.7},"25to44|renter|low":{"n":641,"price":0.268,"balanced":0.412,"coverage":0.32,"avg_cov_pct":43.1,"avg_premium":616,"pct_cheapest":26.8,"pct_richest":39.6},"25to44|renter|mid":{"n":15501,"price":0.24,"balanced":0.339,"coverage":0.421,"avg_cov_pct":53.1,"avg_premium":642,"pct_cheapest":24.0,"pct_richest":51.5},"45to64|owner|high":{"n":4430,"price":0.237,"balanced":0.235,"coverage":0.528,"avg_cov_pct":63.2,"avg_premium":631,"pct_cheapest":23.7,"pct_richest":64.8},"45to64|owner|low":{"n":661,"price":0.3,"balanced":0.369,"coverage":0.331,"avg_cov_pct":46.9,"avg_premium":591,"pct_cheapest":30.0,"pct_richest":43.3},"45to64|owner|mid":{"n":13670,"price":0.242,"balanced":0.27,"coverage":0.488,"avg_cov_pct":58.3,"avg_premium":616,"pct_cheapest":24.2,"pct_richest":60.1},"45to64|renter|high":{"n":1406,"price":0.19,"balanced":0.334,"coverage":0.476,"avg_cov_pct":56.9,"avg_premium":649,"pct_cheapest":19.0,"pct_richest":56.5},"45to64|renter|low":{"n":400,"price":0.23,"balanced":0.403,"coverage":0.367,"avg_cov_pct":42.9,"avg_premium":610,"pct_cheapest":23.0,"pct_richest":45.0},"45to64|renter|mid":{"n":6927,"price":0.205,"balanced":0.354,"coverage":0.441,"avg_cov_pct":52.3,"avg_premium":633,"pct_cheapest":20.5,"pct_richest":51.8},"65plus|owner|high":{"n":2446,"price":0.224,"balanced":0.238,"coverage":0.538,"avg_cov_pct":66.7,"avg_premium":628,"pct_cheapest":22.4,"pct_richest":64.3},"65plus|owner|low":{"n":354,"price":0.302,"balanced":0.328,"coverage":0.37,"avg_cov_pct":49.7,"avg_premium":601,"pct_cheapest":30.2,"pct_richest":45.8},"65plus|owner|mid":{"n":9014,"price":0.252,"balanced":0.252,"coverage":0.496,"avg_cov_pct":61.8,"avg_premium":620,"pct_cheapest":25.2,"pct_richest":61.1},"65plus|renter|high":{"n":372,"price":0.185,"balanced":0.315,"coverage":0.5,"avg_cov_pct":59.9,"avg_premium":642,"pct_cheapest":18.5,"pct_richest":56.2},"65plus|renter|mid":{"n":2466,"price":0.214,"balanced":0.319,"coverage":0.467,"avg_cov_pct":56.4,"avg_premium":630,"pct_cheapest":21.4,"pct_richest":55.0},"under25|owner|high":{"n":823,"price":0.271,"balanced":0.247,"coverage":0.482,"avg_cov_pct":61.3,"avg_premium":658,"pct_cheapest":27.1,"pct_richest":61.8},"under25|owner|low":{"n":242,"price":0.343,"balanced":0.397,"coverage":0.26,"avg_cov_pct":44.5,"avg_premium":621,"pct_cheapest":34.3,"pct_richest":36.0},"under25|owner|mid":{"n":4099,"price":0.287,"balanced":0.303,"coverage":0.41,"avg_cov_pct":55.4,"avg_premium":646,"pct_cheapest":28.7,"pct_richest":52.4},"under25|renter|high":{"n":1434,"price":0.25,"balanced":0.344,"coverage":0.406,"avg_cov_pct":55.1,"avg_premium":668,"pct_cheapest":25.0,"pct_richest":50.9},"under25|renter|low":{"n":625,"price":0.275,"balanced":0.434,"coverage":0.291,"avg_cov_pct":41.7,"avg_premium":633,"pct_cheapest":27.5,"pct_richest":36.5},"under25|renter|mid":{"n":10675,"price":0.267,"balanced":0.361,"coverage":0.372,"avg_cov_pct":51.8,"avg_premium":654,"pct_cheapest":26.7,"pct_richest":46.5}}</script>
 <script>
 "use strict";
-const COVMAX = 18;
-// ---- three curated REAL Allstate sessions (ordered quotes + actual purchase) -------
-const SHOPPERS = [
-  { id: "10000128", title: "The price-cutter", tag: "price",
-    traits: "24 yrs \u00b7 renter \u00b7 Maine", note: "young driver",
-    clicks: [ {cov:14,cost:655},{cov:11,cost:637},{cov:7,cost:569},{cov:7,cost:569},{cov:8,cost:567},{cov:8,cost:573} ],
-    bought: {cov:8,cost:573} },
-  { id: "10000112", title: "The upgrader", tag: "cov",
-    traits: "41 yrs \u00b7 homeowner \u00b7 Tennessee", note: "",
-    clicks: [ {cov:4,cost:530},{cov:4,cost:530},{cov:13,cost:670},{cov:13,cost:670},{cov:13,cost:670},{cov:13,cost:670} ],
-    bought: {cov:13,cost:688} },
-  { id: "10000034", title: "The waverer", tag: "bal",
-    traits: "61 yrs \u00b7 homeowner \u00b7 Oklahoma", note: "",
-    clicks: [ {cov:10,cost:610},{cov:13,cost:613},{cov:14,cost:608},{cov:14,cost:612},{cov:12,cost:600},{cov:12,cost:600} ],
-    bought: {cov:12,cost:600} },
-];
-SHOPPERS.forEach(s => {
-  s.lean = s.clicks.reduce((m, q) => q.cost < m.cost ? q : m, s.clicks[0]);   // cheapest quote seen
-  s.rich = s.clicks.reduce((m, q) => q.cov > m.cov ? q : m, s.clicks[0]);     // richest coverage seen
-});
-
-let si = 0, step = 0, timer = null;
+const LK = JSON.parse(document.getElementById("lookalikes").textContent);
+const COVMAX = 18, STD_COV = 10;
+const costPrice = cov => Math.round(470 + 13.5 * cov);
 const covpct = c => Math.round(c / COVMAX * 100);
-const cur = () => SHOPPERS[si];
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const argmax = o => Object.keys(o).reduce((a,b)=>o[a]>=o[b]?a:b);
 
-// ---- the engine reading the trajectory (transparent, from the clicks) --------------
-function read(clicks, k) {   // k = quotes revealed so far (1..n)
-  let sig = 0;
-  for (let i = 1; i < k; i++) {
-    const d = clicks[i].cov - clicks[i - 1].cov;
-    if (d > 0) sig += 1.0;            // adding coverage \u2192 coverage-driven signal
-    else if (d < 0) sig += -1.5;     // trimming coverage \u2192 stronger price signal
-    // price only counts as a DECISION when they also reconfigured (a calculator move);
-    // same-coverage re-quotes are noise the engine ignores
-    if (d !== 0 && clicks[i].cost - clicks[i - 1].cost < -15) sig += -0.4;
-  }
-  sig += (clicks[k - 1].cov - clicks[0].cov) * 0.4;              // net coverage drift
-  const lean = Math.tanh(sig / 3.5);                            // -1 price \u2026 +1 coverage
-  const settled = k >= 2 && clicks[k - 1].cov === clicks[k - 2].cov
-                  && clicks[k - 1].cost === clicks[k - 2].cost;
-  return { lean, settled };
-}
-function surfaced(s, k) {   // the offer the engine leads with, given the read at step k
-  const { lean, settled } = read(s.clicks, k);
-  if (lean < -0.4) return { off: s.lean, kind: "lean" };
-  if (lean > 0.4)  return { off: s.rich, kind: "rich" };
-  return { off: s.clicks[k - 1], kind: settled ? "settled" : "current" };
-}
+const PERSONA = { price:{covTaste:0.15,priceElast:3.2}, balanced:{covTaste:0.32,priceElast:1.8}, coverage:{covTaste:0.55,priceElast:0.9} };
+const NAME = { price:"Price-driven", balanced:"Balanced", coverage:"Coverage-driven" };
+function pBuy(q,premium,cov){ const p=PERSONA[q], ref=costPrice(STD_COV);
+  return 1/(1+Math.exp(-(0.6 + p.covTaste*(cov-STD_COV) - p.priceElast*(premium-ref)/100))); }
+function engineOffer(q){ let best=null;
+  for(const cov of [6,10,15]) for(let m=-40;m<=90;m+=10){ const premium=costPrice(cov)+m, pc=pBuy(q,premium,cov), rev=pc*premium;
+    if(!best||rev>best.rev) best={cov,premium,pc,rev}; } return best; }
+const TESTS = [{key:"lean",name:"Lean",cov:6},{key:"bal",name:"Balanced",cov:10},{key:"rich",name:"Rich",cov:15}]
+  .map(o=>({...o,premium:costPrice(o.cov)}));
 
-// ---- render ------------------------------------------------------------------------
-function renderTabs() {
-  document.getElementById("tabs").innerHTML = SHOPPERS.map((s, i) =>
-    `<button class="tab ${i === si ? "on" : ""}" data-i="${i}">
-       <b>${s.title}</b><span>real cust ${s.id} \u00b7 ${s.clicks.length} quotes</span></button>`).join("");
-  document.querySelectorAll(".tab").forEach(t =>
-    t.addEventListener("click", () => { stop(); si = +t.dataset.i; step = 0; render(); }));
-}
+function cellKey(){ return `${age.value}|${home.value}|${car.value}`; }
+function getCell(){ const k=cellKey(); if(LK[k]) return {k,...LK[k]};
+  // fall back to nearest by ignoring car, then home
+  for(const alt of [`${age.value}|${home.value}|mid`,`${age.value}|owner|mid`,`25to44|owner|mid`]) if(LK[alt]) return {k,...LK[alt]};
+  return {k, ...Object.values(LK)[0]}; }
+const age=document.getElementById("age"), home=document.getElementById("home"), car=document.getElementById("car");
 
-function render() {
-  const s = cur();
-  document.querySelectorAll(".tab").forEach((t, i) => t.classList.toggle("on", i === si));
-  document.getElementById("who").innerHTML =
-    `<h2>${s.title}</h2><span class="real">real cust ${s.id}</span><span class="traits">${s.traits}</span>`;
+function bars(el, dist){ el.innerHTML = ["price","balanced","coverage"].map(q=>
+  `<div class="brow"><span>${NAME[q]}</span><span class="bt"><span class="bf ${q}" style="width:${Math.round(dist[q]*100)}%"></span></span><span>${Math.round(dist[q]*100)}%</span></div>`).join(""); }
 
-  // clickstream, revealed to `step`
-  let html = "";
-  for (let i = 0; i < step; i++) {
-    const q = s.clicks[i], prev = i ? s.clicks[i - 1] : null;
-    const changed = prev && q.cov !== prev.cov;          // a real calculator move vs a re-quote
-    if (i > 0) {
-      const d = q.cov - prev.cov;
-      const cls = d > 0 ? "up" : d < 0 ? "down" : "rq";
-      const gl = d > 0 ? "\u2191" : d < 0 ? "\u2193" : "=";
-      const tt = d > 0 ? "added coverage" : d < 0 ? "cut coverage" : "same coverage \u2014 re-quote";
-      html += `<div class="qwrap"><span class="arrow ${cls}" title="${tt}">${gl}</span></div>`;
-    }
-    const tag = i === 0 ? `<div class="tag open">opening quote</div>`
-              : changed ? `<div class="tag move">reconfigured</div>`
-              : `<div class="tag rq">re-quote</div>`;
-    html += `<div class="qwrap"><div class="chip ${i === step - 1 ? "cur" : ""} ${prev && !changed ? "req" : ""}">
-      <div class="step">quote ${i + 1}</div>${tag}
-      <div class="cov"><i style="width:${covpct(q.cov)}%"></i></div>
-      <div class="covn">cov ${covpct(q.cov)}%</div>
-      <div class="price">$${q.cost}</div></div></div>`;
-  }
-  // once all quotes are shown, append what they actually bought
-  if (step >= s.clicks.length) {
-    html += `<div class="qwrap"><span class="arrow flat">\u21d2</span></div>`;
-    html += `<div class="qwrap"><div class="chip bought">
-      <div class="bt">\u2605 bought</div>
-      <div class="cov"><i style="width:${covpct(s.bought.cov)}%"></i></div>
-      <div class="covn">cov ${covpct(s.bought.cov)}%</div>
-      <div class="price">$${s.bought.cost}</div></div></div>`;
-  }
-  document.getElementById("stream").innerHTML = html || `<span style="color:var(--ink3);font-family:var(--mono);font-size:13px">Press Play or Step \u2192</span>`;
+let truePersona=null;
 
-  // engine read
-  const rt = document.getElementById("readtype"), rat = document.getElementById("rationale");
-  const mark = document.getElementById("mark"), gmid = document.getElementById("gmid");
-  if (step === 0) {
-    mark.style.left = "50%"; gmid.textContent = "reading\u2026";
-    rt.textContent = "Press Play or Step to begin"; rt.className = "readtype";
-    rat.textContent = "Each quote they view is a clue. The engine watches which way they move.";
-    setSurface(null);
-    return;
-  }
-  const { lean, settled } = read(s.clicks, step);
-  mark.style.left = Math.max(3, Math.min(97, (lean + 1) / 2 * 100)) + "%";
-  const type = lean < -0.4 ? ["price", "Price-driven", "chasing a lower price"]
-             : lean > 0.4 ? ["cov", "Coverage-driven", "reaching for more cover"]
-             : ["bal", "Balanced / still reading", "weighing price against cover"];
-  gmid.textContent = type[2];
-  rt.textContent = type[1]; rt.className = "readtype " + type[0];
-  rat.innerHTML = rationale(s, step, settled);
-  setSurface(surfaced(s, step));
-}
+function run(){
+  const c=getCell();
+  ["s1","s2","s3","s4"].forEach(id=>document.getElementById(id).classList.add("on"));
+  const prior={price:c.price,balanced:c.balanced,coverage:c.coverage};
 
-function rationale(s, k, settled) {
-  const q = s.clicks[k - 1], prev = k > 1 ? s.clicks[k - 2] : null;
-  if (k === 1) return `First quote in: <b>cov ${covpct(q.cov)}% at $${q.cost}</b>. Watching where they go next.`;
-  const dCov = q.cov - prev.cov, dP = q.cost - prev.cost;
-  if (settled) return `They've stopped moving \u2014 parked at <b>cov ${covpct(q.cov)}% for $${q.cost}</b>. Looks ready to buy.`;
-  if (dCov < 0) return `They just <b>cut coverage</b> (${covpct(prev.cov)}%\u2192${covpct(q.cov)}%) to drop the price ${dP<0?`$${-dP}`:""}. That's a price-seeker.`;
-  if (dCov > 0) return `They just <b>added coverage</b> (${covpct(prev.cov)}%\u2192${covpct(q.cov)}%) and accepted ${dP>0?`+$${dP}`:"the price"}. They'll pay for cover.`;
-  return `Same plan, just re-quoted (${dP>0?`$${dP} higher`:dP<0?`$${-dP} lower`:"no change"}) \u2014 not a coverage decision, so the engine ignores this wiggle.`;
+  // STEP 1 \u2014 lookalikes
+  document.getElementById("s1sub").textContent = `${c.n.toLocaleString()} real shoppers like this`;
+  document.getElementById("mix").innerHTML =
+    `<span class="p" style="width:${prior.price*100}%">${Math.round(prior.price*100)}%</span>`+
+    `<span class="b" style="width:${prior.balanced*100}%">${Math.round(prior.balanced*100)}%</span>`+
+    `<span class="c" style="width:${prior.coverage*100}%">${Math.round(prior.coverage*100)}%</span>`;
+  const startCov = clamp(Math.round(c.avg_cov_pct/100*COVMAX),4,COVMAX);
+  document.getElementById("lkstat").innerHTML =
+    `<span>bought avg <b>${c.avg_cov_pct}%</b> coverage</span><span>avg premium <b>$${c.avg_premium}</b></span>`+
+    `<span><b>${c.pct_cheapest}%</b> took the cheapest</span><span>&#8594; start near <b>cov ${covpct(startCov)}%</b></span>`;
+  document.getElementById("s1note").innerHTML =
+    `Good warm start on <b>coverage</b> &#8212; but <b>${Math.round(prior.price*100)}%</b> here are price-driven, `+
+    `about the same 1-in-4 as everywhere. Demographics can't spot who'll walk on price. That needs a test.`;
+
+  // hidden truth: draw this shopper's persona from the cell's REAL mix
+  const r=Math.random(); truePersona = r<prior.price?"price":r<prior.price+prior.balanced?"balanced":"coverage";
+
+  // STEP 2 \u2014 test offers, observe responses (modeled)
+  const resp = TESTS.map(o=>({...o, interested: Math.random() < pBuy(truePersona,o.premium,o.cov)}));
+  document.getElementById("tests").innerHTML = resp.map(o=>
+    `<div class="test ${o.interested?"yes":"no"}"><div class="tn">${o.name}</div>`+
+    `<div class="tc">cov ${covpct(o.cov)}% &#183; $${o.premium}</div><div class="tp">$${o.premium}</div>`+
+    `<div class="resp">${o.interested?"engaged":"passed"}</div></div>`).join("");
+
+  // STEP 3 \u2014 confirm: posterior over personas = prior * likelihood of responses
+  const post={}; let Z=0;
+  for(const q of ["price","balanced","coverage"]){ let L=1;
+    for(const o of resp){ const pc=pBuy(q,o.premium,o.cov); L*= o.interested?pc:(1-pc); }
+    post[q]=prior[q]*L; Z+=post[q]; }
+  for(const q in post) post[q]/=Z;
+  bars(document.getElementById("prior"), prior);
+  bars(document.getElementById("post"), post);
+  const conf=argmax(post);
+  document.getElementById("verdict").innerHTML =
+    `They engaged with the ${resp.filter(o=>o.interested).map(o=>o.name.toLowerCase()).join(" & ")||"none of the"} `+
+    `offer${resp.filter(o=>o.interested).length===1?"":"s"} &#8594; confirmed <b class="${conf}">${NAME[conf]}</b> `+
+    `(${Math.round(post[conf]*100)}% sure, up from ${Math.round(prior[conf]*100)}%).`;
+
+  // STEP 4 \u2014 price to the confirmed persona; results averaged over the whole cell
+  const eng=engineOffer(conf);
+  document.getElementById("foff_c").textContent = `coverage ${covpct(eng.cov)}%`;
+  document.getElementById("foff_p").innerHTML = `$${eng.premium}<small>/yr</small>`;
+  const flatPrem=costPrice(STD_COV);
+  document.getElementById("foff_m").innerHTML = eng.premium<flatPrem
+    ? `priced <b>down</b> to win them` : eng.cov>STD_COV ? `<b>more coverage</b>, they'll pay` : `tuned to what they'll accept`;
+  // averaged over everyone in this cell (weight by the real mix)
+  //  flat  = standard mid bundle, cost price, for all
+  //  prior = demographics set the COVERAGE (their real signal), cost price, no demand pricing
+  //  eng   = coverage + demand-based price per confirmed persona
+  const priorOff={ cov:startCov, premium:costPrice(startCov) };
+  let revFlat=0, revPrior=0, revEng=0;
+  for(const q of ["price","balanced","coverage"]){ const w=prior[q];
+    revFlat += w * pBuy(q,flatPrem,STD_COV)*flatPrem;
+    revPrior+= w * pBuy(q,priorOff.premium,priorOff.cov)*priorOff.premium;
+    revEng  += w * engineOffer(q).rev; }
+  const mx=Math.max(revFlat,revPrior,revEng)*1.04;
+  const setb=(id,v,lab)=>{const e=document.getElementById(id); e.style.width=(v/mx*100)+"%"; e.textContent=`$${v.toFixed(0)} ${lab}`;};
+  setb("r_flat",revFlat,"flat"); setb("r_prior",revPrior,"prior"); setb("r_eng",revEng,"engine");
+  const dPrior=(revPrior/revFlat-1)*100, dEng=(revEng/revFlat-1)*100;
+  document.getElementById("liftline").innerHTML =
+    `Engine <b>+${dEng.toFixed(0)}%</b> vs flat. Demographics alone add <b>+${dPrior.toFixed(0)}%</b> `+
+    `(coverage targeting) &#8212; the clicks find the price-sensitive and add the rest.`;
 }
 
-function setSurface(sf) {
-  const nm = document.getElementById("offName"), det = document.getElementById("offDet"),
-        why = document.getElementById("offWhy");
-  if (!sf) { nm.textContent = "\u2014"; det.textContent = "waiting for the first clicks\u2026"; why.textContent = ""; return; }
-  const names = { lean: "Lean quote", rich: "Full-coverage plan", current: "Where they are now", settled: "Their settled quote" };
-  nm.textContent = names[sf.kind];
-  det.innerHTML = `cov ${covpct(sf.off.cov)}% \u00b7 <b>$${sf.off.cost}/yr</b>`;
-  const w = { lean: "Lead with the cheap quote \u2014 pushing coverage now would lose the sale.",
-             rich: "Lead with more coverage \u2014 they've shown they'll pay for it.",
-             current: "Mirror where they've landed \u2014 don't disrupt a forming decision.",
-             settled: "They've decided \u2014 present this and close." };
-  why.textContent = w[sf.kind];
-}
-
-function showClose() {
-  const s = cur(), sf = surfaced(s, s.clicks.length);
-  const matchCov = covpct(sf.off.cov) === covpct(s.bought.cov);
-  const start = s.clicks[0];
-  let take;
-  if (sf.kind === "lean")
-    take = `The engine caught the coverage cuts early and would surface the <b>$${s.lean.cost} lean quote</b> \u2014 closing the sale instead of re-quoting the $${start.cost} plan they already walked back from.`;
-  else if (sf.kind === "rich")
-    take = `The engine saw them climbing and would lead with <b>full coverage</b> \u2014 a $${s.rich.cost} sale, <b>+$${s.rich.cost - start.cost}</b> more than the $${start.cost} they started at.`;
-  else
-    take = `The engine let them settle and would close on the <b>balanced $${sf.off.cost} plan</b> \u2014 the one they actually wanted \u2014 without over-pushing.`;
-  document.getElementById("close").className = "close show";
-  document.getElementById("close").innerHTML =
-    `<h3>Closing the sale</h3>
-     <div class="cmp">
-       <span>Engine surfaces: <b>cov ${covpct(sf.off.cov)}% \u00b7 $${sf.off.cost}</b></span>
-       <span>They actually bought: <b>cov ${covpct(s.bought.cov)}% \u00b7 $${s.bought.cost}</b></span>
-       <span class="match">${matchCov ? "\u2713 same coverage tier \u2014 the clickstream predicted the purchase" : "\u2248 same neighbourhood"}</span>
-     </div>
-     <div class="take">${take}</div>`;
-}
-
-// ---- controls ----------------------------------------------------------------------
-function advance() {
-  const s = cur();
-  if (step < s.clicks.length) { step += 1; render(); if (step === s.clicks.length) showClose(); }
-  else stop();
-}
-function play() {
-  const s = cur();
-  if (timer) { stop(); return; }
-  if (step >= s.clicks.length) { step = 0; document.getElementById("close").className = "close"; render(); }
-  document.getElementById("play").textContent = "\u275a\u275a Pause";
-  timer = setInterval(() => { advance(); if (step >= cur().clicks.length) stop(); }, 1100);
-}
-function stop() { if (timer) clearInterval(timer); timer = null; document.getElementById("play").textContent = "\u25b6 Play the session"; }
-function reset() { stop(); step = 0; document.getElementById("close").className = "close"; render(); }
-
-document.getElementById("play").addEventListener("click", play);
-document.getElementById("step").addEventListener("click", () => { stop(); document.getElementById("close").className = "close"; advance(); });
-document.getElementById("reset").addEventListener("click", reset);
+document.getElementById("run").addEventListener("click", run);
+document.getElementById("rand").addEventListener("click", ()=>{
+  const pick=s=>{ s.selectedIndex=Math.floor(Math.random()*s.options.length); };
+  pick(age); pick(home); pick(car); run(); });
+[age,home,car].forEach(s=>s.addEventListener("change", run));
 
 document.getElementById("foot").innerHTML =
-  `The <b>clicks and the purchase are 100% real</b> \u2014 actual quote sessions from the Allstate ` +
-  `Purchase Prediction dataset (Kaggle). The engine's read of the trajectory and the offer it ` +
-  `surfaces are the model's call; that the call lands on what they actually bought is the ` +
-  `validation. Whether surfacing it earlier <i>drives</i> the sale is the projected value \u2014 the ` +
-  `data is buyers-only, so conversion itself is modelled (calibrated + disclosed in the build). ` +
-  `Code + write-up: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
+  `<b>Step 1 is real:</b> the lookalike mix and coverage come from 96,882 Allstate shoppers, bucketed by age, `+
+  `home and car value. <b>Steps 2&#8211;4 are modeled:</b> the shopper's hidden persona is drawn from that cell's `+
+  `real mix, and their responses follow a conversion model calibrated to the build's elasticities (the data is `+
+  `buyers-only, so conversion can't be observed). The point: demographics warm-start the coverage, but only the `+
+  `clicks find the price-sensitive. Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
 
-renderTabs();
-render();
+run();
 </script>
