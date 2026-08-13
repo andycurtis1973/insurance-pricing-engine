@@ -1,0 +1,254 @@
+<title>Two shoppers, one engine: a guided pricing journey</title>
+<style>
+  * { box-sizing:border-box; }
+  :root {
+    color-scheme: light;
+    --bg:#f7f8fa; --card:#ffffff; --card2:#f0f2f6; --rule:#e3e6ec;
+    --ink:#12141a; --ink2:#555c6b; --ink3:#858c9a;
+    --engine:#2a78d6; --price:#e34948; --cov:#1baf7a; --bal:#9a6bd6; --gold:#c78a1e;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) {
+    color-scheme: dark; --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+    --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637; } }
+  :root[data-theme="dark"] { color-scheme: dark; --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+    --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:920px; margin:0 auto; padding:36px 22px 70px; }
+  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); margin:0 0 12px; }
+  h1 { font-size:clamp(24px,3.6vw,32px); line-height:1.16; letter-spacing:-.02em; margin:0 0 12px; font-weight:640; text-wrap:balance; }
+  h1 em { font-style:normal; color:var(--engine); }
+  .lede { font-size:15.5px; color:var(--ink2); margin:0; max-width:80ch; }
+
+  .who { display:flex; gap:10px; margin:22px 0 0; flex-wrap:wrap; }
+  .whobtn { flex:1; min-width:220px; cursor:pointer; text-align:left; background:var(--card); border:1.5px solid var(--rule);
+            border-radius:12px; padding:13px 16px; color:var(--ink); transition:border-color .15s, transform .1s; }
+  .whobtn:hover { transform:translateY(-2px); } .whobtn:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
+  .whobtn.on.price { border-color:var(--price); box-shadow:0 0 0 3px color-mix(in srgb,var(--price) 15%,transparent); }
+  .whobtn.on.cov { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 15%,transparent); }
+  .whobtn .n { font-weight:680; font-size:16px; } .whobtn .n .tag { font-size:11px; font-family:var(--mono); padding:2px 7px; border-radius:6px; margin-left:8px; }
+  .whobtn.price .tag { background:color-mix(in srgb,var(--price) 20%,transparent); color:var(--price); }
+  .whobtn.cov .tag { background:color-mix(in srgb,var(--cov) 20%,transparent); color:var(--cov); }
+  .whobtn .d { font-size:13px; color:var(--ink3); margin-top:3px; }
+
+  .transport { display:flex; align-items:center; gap:10px; margin:16px 0 0; }
+  button.pl { font:inherit; font-size:14px; font-weight:600; cursor:pointer; border:1px solid var(--rule);
+              background:var(--card2); color:var(--ink); padding:10px 16px; border-radius:9px; }
+  button.pl.go { background:var(--engine); color:#fff; border-color:var(--engine); }
+  button.pl:hover { filter:brightness(1.06); } button.pl:disabled { opacity:.45; cursor:default; }
+  button.pl:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
+  .beat { margin-left:auto; display:flex; gap:6px; }
+  .beat i { width:22px; height:6px; border-radius:3px; background:var(--rule); }
+  .beat i.on { background:var(--engine); }
+
+  .caption { margin-top:16px; background:var(--card); border:1px solid var(--rule); border-left:4px solid var(--engine);
+             border-radius:12px; padding:14px 18px; font-size:16px; min-height:58px; display:flex; align-items:center; }
+  .caption b { color:var(--ink); } .caption .em.price { color:var(--price); font-weight:700; } .caption .em.cov { color:var(--cov); font-weight:700; }
+
+  .stage { margin-top:14px; background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:20px; min-height:280px; }
+  .steplab { font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink3); margin-bottom:14px; }
+
+  /* form */
+  .form { display:flex; gap:12px; flex-wrap:wrap; }
+  .fpill { flex:1; min-width:150px; background:var(--card2); border:1.5px solid var(--rule); border-radius:11px; padding:14px 16px; transition:border-color .3s; }
+  .fpill.fill { border-color:var(--engine); }
+  .fpill .fl { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink3); }
+  .fpill .fv { font-size:19px; font-weight:660; margin-top:5px; min-height:24px; color:var(--ink3); }
+  .fpill.fill .fv { color:var(--ink); }
+
+  /* offers row */
+  .offers { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:600px){ .offers { grid-template-columns:1fr; } .form .fpill{min-width:0;} }
+  .off { position:relative; border:1.5px solid var(--rule); border-radius:12px; padding:14px; text-align:center; background:var(--card2);
+         transition:border-color .25s, box-shadow .25s, transform .25s, opacity .25s; }
+  .off .on { font-weight:660; font-size:15px; } .off .oc { font-family:var(--mono); font-size:11px; color:var(--ink3); margin:3px 0 8px; }
+  .off .obar { height:7px; border-radius:4px; background:var(--rule); overflow:hidden; margin-bottom:8px; }
+  .off .obar>i { display:block; height:100%; background:var(--engine); border-radius:4px; }
+  .off .op { font-family:var(--mono); font-weight:800; font-size:20px; }
+  .off.lead { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 16%,transparent); }
+  .off.take { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 20%,transparent); }
+  .off.pass { opacity:.5; }
+  .off.steer { border-color:var(--engine); box-shadow:0 0 0 4px color-mix(in srgb,var(--engine) 24%,transparent); transform:scale(1.04); }
+  .off .flag { position:absolute; top:-10px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:9.5px;
+               text-transform:uppercase; letter-spacing:.04em; padding:2px 8px; border-radius:6px; color:#fff; white-space:nowrap; display:none; }
+  .off.lead .flag.lead, .off.take .flag.take, .off.pass .flag.pass, .off.steer .flag.steer { display:block; }
+  .flag.lead { background:var(--engine); } .flag.take { background:var(--cov); } .flag.pass { background:var(--ink3); } .flag.steer { background:var(--engine); }
+
+  .gaugewrap { margin-top:18px; }
+  .gaugewrap .gl { display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--ink3); margin-bottom:6px; }
+  .gauge { position:relative; height:12px; border-radius:7px; background:linear-gradient(90deg,var(--price),var(--bal),var(--cov)); opacity:.85; }
+  .gauge .mk { position:absolute; top:-5px; width:6px; height:22px; border-radius:3px; background:var(--ink); border:2px solid var(--card); left:50%;
+               transition:left .6s cubic-bezier(.4,1.2,.5,1); }
+  .readnow { margin-top:9px; font-size:14px; color:var(--ink2); } .readnow b.price{color:var(--price);} .readnow b.cov{color:var(--cov);} .readnow b.balanced{color:var(--bal);}
+
+  .lookup { display:flex; gap:16px; flex-wrap:wrap; font-family:var(--mono); font-size:12.5px; color:var(--ink2); margin-bottom:14px; }
+  .lookup b { color:var(--ink); }
+  .close { margin-top:16px; border-radius:12px; padding:14px 18px; background:color-mix(in srgb,var(--cov) 12%,var(--card)); border:1px solid var(--cov);
+           font-size:15.5px; display:none; }
+  .close.show { display:block; } .close b { color:var(--ink); } .close .big { color:var(--cov); font-weight:700; }
+
+  footer { margin-top:26px; padding-top:16px; border-top:1px solid var(--rule); color:var(--ink3); font-size:12px; font-family:var(--mono); line-height:1.8; }
+  footer a { color:var(--engine); }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">A guided journey &#183; two shoppers, one engine</p>
+    <h1>Watch the engine <em>steer two different shoppers</em> to the right coverage</h1>
+    <p class="lede">Same engine, two people. Each enters their details, gets an opening offer, and starts
+      clicking. The engine reads the clicks and steers &#8212; the price shopper to a lean quote it can
+      actually close, the coverage shopper up to richer cover they'll happily pay for. Pick one and press play.</p>
+  </header>
+
+  <div class="who" id="who"></div>
+
+  <div class="transport">
+    <button class="pl go" id="play">&#9654; Play the journey</button>
+    <button class="pl" id="next">Step &#8594;</button>
+    <button class="pl" id="restart">Restart</button>
+    <div class="beat" id="beat"></div>
+  </div>
+
+  <div class="caption" id="caption"></div>
+  <div class="stage" id="stage"></div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+"use strict";
+const COVMAX=18, STD_COV=10;
+const costPrice=cov=>Math.round(470+13.5*cov);
+const covpct=c=>Math.round(c/COVMAX*100);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const argmax=o=>Object.keys(o).reduce((a,b)=>o[a]>=o[b]?a:b);
+const PERSONA={ price:{covTaste:0.15,priceElast:3.2}, balanced:{covTaste:0.32,priceElast:1.8}, coverage:{covTaste:0.55,priceElast:0.9} };
+const NAME={price:"price-driven",balanced:"balanced",coverage:"coverage-driven"};
+function pBuy(q,premium,cov){ const p=PERSONA[q],ref=costPrice(STD_COV);
+  return 1/(1+Math.exp(-(0.6+p.covTaste*(cov-STD_COV)-p.priceElast*(premium-ref)/100))); }
+function engineOffer(q){ let best=null; for(const cov of [6,10,15]) for(let m=-20;m<=90;m+=10){
+  const premium=costPrice(cov)+m,pc=pBuy(q,premium,cov),rev=pc*premium; if(!best||rev>best.rev) best={cov,premium,pc,rev}; } return best; }
+const OFF={ lean:{key:"lean",name:"Lean",cov:6}, bal:{key:"bal",name:"Balanced",cov:10}, rich:{key:"rich",name:"Rich",cov:15} };
+for(const k in OFF) OFF[k].premium=costPrice(OFF[k].cov);
+
+// two scripted shoppers, each backed by a REAL demographic cell + a true persona
+const SHOPPERS={
+  dana:{ name:"Dana", cls:"price", truth:"price", age:"24", home:"renter", car:"low value",
+    cell:{n:625, prior:{price:0.28,balanced:0.43,coverage:0.29}, avg_cov:42},
+    clicks:[{k:"lean",take:true},{k:"rich",take:false},{k:"bal",take:false}] },
+  carla:{ name:"Carla", cls:"cov", truth:"coverage", age:"62", home:"homeowner", car:"high value",
+    cell:{n:2446, prior:{price:0.22,balanced:0.24,coverage:0.54}, avg_cov:67},
+    clicks:[{k:"rich",take:true},{k:"bal",take:true},{k:"lean",take:false}] },
+};
+
+let who="dana", beat=0, timer=null;
+const S=()=>SHOPPERS[who];
+const NBEATS=7;   // 0 arrive,1 details,2 offer,3-5 clicks,6 steer+close
+
+// running belief from the clicks revealed so far
+function beliefAfter(nClicks){
+  const s=S(), prior=s.cell.prior, post={}; let Z=0;
+  for(const q of ["price","balanced","coverage"]){ let L=1;
+    for(let j=0;j<nClicks;j++){ const c=s.clicks[j], o=OFF[c.k], pc=pBuy(q,o.premium,o.cov); L*= c.take?pc:(1-pc); }
+    post[q]=prior[q]*L; Z+=post[q]; }
+  for(const q in post) post[q]/=Z; return post;
+}
+
+function renderWho(){
+  document.getElementById("who").innerHTML=Object.entries(SHOPPERS).map(([k,s])=>
+    `<button class="whobtn ${s.cls} ${k===who?"on":""}" data-k="${k}">
+      <div class="n">${s.name}<span class="tag">${s.truth==="price"?"price-driven":"coverage-driven"}</span></div>
+      <div class="d">${s.age} &#183; ${s.home} &#183; ${s.car} car</div></button>`).join("");
+  document.querySelectorAll(".whobtn").forEach(b=>b.addEventListener("click",()=>{ who=b.dataset.k; restart(); }));
+}
+
+function gauge(post){ const lean=(post.coverage-post.price); // -1..1
+  return clamp((lean+1)/2*100,4,96); }
+
+function render(){
+  const s=S();
+  document.querySelectorAll(".whobtn").forEach(b=>b.classList.toggle("on",b.dataset.k===who));
+  document.getElementById("beat").innerHTML=Array.from({length:NBEATS},(_,k)=>`<i class="${k<=beat?"on":""}"></i>`).join("");
+  const cap=document.getElementById("caption"), stage=document.getElementById("stage");
+
+  // helper to draw the 3 offers with per-offer state {lead,take,pass,steer}
+  const offersHTML=(state,override)=>`<div class="offers">`+["lean","bal","rich"].map(k=>{const o=OFF[k],st=state[k]||"";
+    const price=(override&&override.key===k)?override.premium:o.premium;
+    return `<div class="off ${st}">
+      <span class="flag lead">engine opens here</span><span class="flag take">clicked</span>
+      <span class="flag pass">skipped</span><span class="flag steer">steered here</span>
+      <div class="on">${o.name}</div><div class="oc">cov ${covpct(o.cov)}%</div>
+      <div class="obar"><i style="width:${covpct(o.cov)}%"></i></div><div class="op">$${price}</div></div>`;}).join("")+`</div>`;
+
+  const gaugeHTML=(post,label)=>`<div class="gaugewrap"><div class="gl"><span>price-driven</span><span>coverage-driven</span></div>
+    <div class="gauge"><div class="mk" style="left:${gauge(post)}%"></div></div><div class="readnow">${label}</div></div>`;
+
+  if(beat===0){
+    cap.innerHTML=`Meet <b>${s.name}</b> &#8212; ${s.age}, a ${s.home} with a ${s.car} car. She lands on the quote page.`;
+    stage.innerHTML=`<div class="steplab">Step 1 &#183; the shopper arrives</div><div class="form">
+      <div class="fpill"><div class="fl">Age</div><div class="fv">&#8212;</div></div>
+      <div class="fpill"><div class="fl">Home</div><div class="fv">&#8212;</div></div>
+      <div class="fpill"><div class="fl">Car value</div><div class="fv">&#8212;</div></div></div>`;
+  } else if(beat===1){
+    cap.innerHTML=`<b>${s.name}</b> enters her details. On demographics alone the engine can guess coverage &#8212; but not who'll walk on price.`;
+    stage.innerHTML=`<div class="steplab">Step 1 &#183; enters demographics</div><div class="form">
+      <div class="fpill fill"><div class="fl">Age</div><div class="fv">${s.age}</div></div>
+      <div class="fpill fill"><div class="fl">Home</div><div class="fv">${s.home}</div></div>
+      <div class="fpill fill"><div class="fl">Car value</div><div class="fv">${s.car}</div></div></div>`;
+  } else if(beat===2){
+    const startCov=clamp(Math.round(s.cell.avg_cov/100*COVMAX),4,COVMAX);
+    const opener=[["lean",6],["bal",10],["rich",15]].reduce((a,b)=>Math.abs(b[1]-startCov)<Math.abs(a[1]-startCov)?b:a)[0];
+    cap.innerHTML=`The engine finds <b>${s.cell.n.toLocaleString()}</b> real shoppers like ${s.name} &#8212; they bought about
+      <b>${s.cell.avg_cov}%</b> coverage. It <b>opens</b> with a matching bundle, at the standard price.`;
+    stage.innerHTML=`<div class="steplab">Step 2 &#183; opening offer, from lookalikes</div>
+      <div class="lookup"><span><b>${s.cell.n.toLocaleString()}</b> lookalikes</span><span>avg <b>${s.cell.avg_cov}%</b> coverage</span>
+      <span>price-driven share <b>${Math.round(s.cell.prior.price*100)}%</b> &#8212; can't tell from this alone</span></div>
+      ${offersHTML({[opener]:"lead"})}${gaugeHTML(s.cell.prior, `Starting guess from demographics: leans ${NAME[argmax(s.cell.prior)]}.`)}`;
+  } else if(beat>=3 && beat<=5){
+    const ci=beat-3, c=s.clicks[ci], shown=s.clicks.slice(0,ci+1);
+    const state={}; shown.forEach(x=>state[x.k]=x.take?"take":"pass");
+    const post=beliefAfter(ci+1); const o=OFF[c.k];
+    cap.innerHTML=`${s.name} ${c.take?`<b>clicks the ${o.name.toLowerCase()}</b> option`:`<b>skips the ${o.name.toLowerCase()}</b> option`}
+      (cov ${covpct(o.cov)}%, $${o.premium}). ${ci===2?`The picture is clear now.`:`The engine updates its read.`}`;
+    stage.innerHTML=`<div class="steplab">Step 3 &#183; track the clicks (${ci+1} of 3)</div>
+      ${offersHTML(state)}${gaugeHTML(post, `Reading ${s.name} as <b class="${argmax(post)}">${NAME[argmax(post)]}</b> (${Math.round(post[argmax(post)]*100)}% sure).`)}`;
+  } else {
+    const post=beliefAfter(3), conf=argmax(post), eng=engineOffer(conf);
+    const steerK= eng.cov<=7?"lean":eng.cov>=13?"rich":"bal";
+    const flatPrem=costPrice(STD_COV);
+    const state={}; s.clicks.forEach(x=>state[x.k]=x.take?"take":"pass"); state[steerK]="steer";
+    cap.innerHTML=`Confirmed <b class="em ${conf}">${NAME[conf]}</b>. The engine <b>steers ${s.name}</b> to the
+      ${OFF[steerK].name.toLowerCase()} plan at <b>$${eng.premium}</b> &#8212; ${conf==="price"?"a sharp price it can actually close":"richer cover she'll happily pay for"}.`;
+    let why = conf==="price"
+      ? `A flat <b>$${flatPrem}</b> quote would have been too high &#8212; ${s.name} walks. The engine's <b>$${eng.premium}</b> keeps her.`
+      : `A flat <b>$${flatPrem}</b> quote leaves about <b>$${eng.premium-flatPrem}</b> on the table &#8212; ${s.name} would have paid more.`;
+    stage.innerHTML=`<div class="steplab">Step 4 &#183; steer to the right coverage &amp; close</div>
+      ${offersHTML(state,{key:steerK,premium:eng.premium})}${gaugeHTML(post,`Confirmed <b class="${conf}">${NAME[conf]}</b> (${Math.round(post[conf]*100)}% sure).`)}
+      <div class="close show"><b>Sale closed &#8212;</b> <span class="big">cov ${covpct(eng.cov)}% at $${eng.premium}/yr</span>. ${why}</div>`;
+  }
+}
+
+function step(){ if(beat<NBEATS-1){ beat++; render(); } else stop(); }
+function play(){ if(timer){ stop(); return; }
+  if(beat>=NBEATS-1){ beat=0; render(); }
+  document.getElementById("play").innerHTML="&#10074;&#10074; Pause";
+  timer=setInterval(()=>{ if(beat<NBEATS-1) step(); else stop(); }, 2100); }
+function stop(){ if(timer) clearInterval(timer); timer=null; document.getElementById("play").innerHTML="&#9654; Play the journey"; }
+function restart(){ stop(); beat=0; render(); }
+
+document.getElementById("play").addEventListener("click",play);
+document.getElementById("next").addEventListener("click",()=>{ stop(); step(); });
+document.getElementById("restart").addEventListener("click",restart);
+
+document.getElementById("foot").innerHTML=
+  `The demographic lookalikes (counts, average coverage, segment mix) are <b>real</b> &#8212; from 96,882 Allstate `+
+  `shoppers. Each shopper's persona and their click responses are scripted to illustrate the two ends; the conversion `+
+  `model behind the steering is calibrated to the build's elasticities (the data is buyers-only, so walk-away is `+
+  `modeled). Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
+
+renderWho(); render();
+</script>
