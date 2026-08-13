@@ -1,0 +1,239 @@
+<title>Win the renewal: a guided walkthrough</title>
+<style>
+  * { box-sizing:border-box; }
+  :root {
+    color-scheme: light;
+    --bg:#f7f8fa; --card:#ffffff; --card2:#f0f2f6; --rule:#e3e6ec;
+    --ink:#12141a; --ink2:#555c6b; --ink3:#858c9a;
+    --engine:#2a78d6; --price:#e34948; --cov:#1baf7a; --bal:#9a6bd6; --gold:#c78a1e;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) {
+    color-scheme: dark; --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+    --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637; } }
+  :root[data-theme="dark"] { color-scheme: dark; --bg:#0f1218; --card:#161a22; --card2:#1c212b; --rule:#252a34;
+    --ink:#eef1f6; --ink2:#a6adbb; --ink3:#727988;
+    --engine:#3987e5; --price:#e66767; --cov:#199e70; --bal:#a986e0; --gold:#d9a637; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:920px; margin:0 auto; padding:36px 22px 80px; }
+  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); margin:0 0 12px; }
+  h1 { font-size:clamp(24px,3.6vw,32px); line-height:1.16; letter-spacing:-.02em; margin:0 0 12px; font-weight:640; text-wrap:balance; }
+  h1 em { font-style:normal; color:var(--engine); }
+  .lede { font-size:15.5px; color:var(--ink2); margin:0; max-width:82ch; }
+  .lede b { color:var(--ink); font-weight:600; }
+  .simnote { font-family:var(--mono); font-size:12px; color:var(--gold); margin:10px 0 0; }
+
+  .who { display:flex; gap:10px; margin:22px 0 0; flex-wrap:wrap; }
+  .whobtn { flex:1; min-width:210px; cursor:pointer; text-align:left; background:var(--card); border:1.5px solid var(--rule);
+            border-radius:12px; padding:12px 15px; color:var(--ink); transition:border-color .15s, transform .1s; }
+  .whobtn:hover { transform:translateY(-2px); } .whobtn:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
+  .whobtn.on.price { border-color:var(--price); box-shadow:0 0 0 3px color-mix(in srgb,var(--price) 15%,transparent); }
+  .whobtn.on.cov { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 15%,transparent); }
+  .whobtn .n { font-weight:680; font-size:15.5px; }
+  .whobtn .n .tag { font-size:11px; font-family:var(--mono); padding:2px 7px; border-radius:6px; margin-left:8px; }
+  .whobtn.price .tag { background:color-mix(in srgb,var(--price) 20%,transparent); color:var(--price); }
+  .whobtn.cov .tag { background:color-mix(in srgb,var(--cov) 20%,transparent); color:var(--cov); }
+  .whobtn .d { font-size:13px; color:var(--ink3); margin-top:3px; }
+
+  .transport { display:flex; align-items:center; gap:10px; margin:16px 0 0; }
+  button.pl { font:inherit; font-size:14px; font-weight:600; cursor:pointer; border:1px solid var(--rule);
+              background:var(--card2); color:var(--ink); padding:10px 16px; border-radius:9px; }
+  button.pl.go { background:var(--engine); color:#fff; border-color:var(--engine); }
+  button.pl:hover { filter:brightness(1.06); } button.pl:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
+  .beat { margin-left:auto; display:flex; gap:6px; } .beat i { width:22px; height:6px; border-radius:3px; background:var(--rule); } .beat i.on { background:var(--engine); }
+
+  .caption { margin-top:16px; background:var(--card); border:1px solid var(--rule); border-left:4px solid var(--engine);
+             border-radius:12px; padding:16px 18px; font-size:16px; line-height:1.5; }
+  .caption b { color:var(--ink); } .caption .win.trim { color:var(--price); font-weight:700; } .caption .win.up { color:var(--cov); font-weight:700; }
+
+  .stage { margin-top:14px; display:flex; flex-direction:column; gap:14px; }
+  .cur { background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:16px 20px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .cur .lab { font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink3); }
+  .cur .nm { font-size:20px; font-weight:680; } .cur .seg { font-size:14px; }
+  .cur .seg b { font-family:var(--mono); }
+  .cur .prem { margin-left:auto; font-family:var(--mono); font-weight:800; font-size:26px; }
+  .cur .prem small { font-size:13px; font-weight:400; color:var(--ink3); }
+
+  .risk { font-size:14.5px; color:var(--ink2); padding-left:12px; border-left:3px solid var(--price); }
+  .risk b { color:var(--ink); }
+
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:620px){ .opts { grid-template-columns:1fr; } }
+  .offer { position:relative; border:1.5px solid var(--rule); border-radius:14px; padding:18px; background:var(--card); transition:border-color .25s, box-shadow .25s, transform .25s, opacity .25s; }
+  .offer.dim { opacity:.5; } .offer.rec { transform:translateY(-2px); }
+  .offer.trim.rec { border-color:var(--price); box-shadow:0 0 0 3px color-mix(in srgb,var(--price) 18%,transparent); }
+  .offer.up.rec { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 18%,transparent); }
+  .offer .otype { font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; margin-bottom:4px; }
+  .offer.trim .otype { color:var(--price); } .offer.up .otype { color:var(--cov); }
+  .offer .oname { font-size:19px; font-weight:680; }
+  .offer .olim { font-family:var(--mono); font-size:12.5px; color:var(--ink2); margin:5px 0 12px; }
+  .offer .oprem { font-family:var(--mono); font-weight:800; font-size:28px; }
+  .offer .oprem .d { font-size:15px; font-weight:700; margin-left:8px; }
+  .offer.trim .oprem .d { color:var(--price); } .offer.up .oprem .d { color:var(--cov); }
+  .offer .osub { font-size:13px; color:var(--ink3); margin-top:2px; }
+  .offer .accept { margin-top:14px; padding-top:12px; border-top:1px dashed var(--rule); font-size:13px; color:var(--ink2); display:flex; justify-content:space-between; align-items:center; }
+  .offer .accept b { font-family:var(--mono); font-size:16px; color:var(--ink); }
+  .offer .abar { height:6px; border-radius:4px; background:var(--rule); overflow:hidden; margin-top:7px; }
+  .offer .abar > i { display:block; height:100%; width:0; border-radius:4px; transition:width .5s ease; }
+  .offer.trim .abar > i { background:var(--price); } .offer.up .abar > i { background:var(--cov); }
+  .badge { position:absolute; top:-11px; right:16px; font-family:var(--mono); font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:#fff; padding:3px 10px; border-radius:7px; display:none; }
+  .offer.rec .badge { display:block; } .offer.trim.rec .badge { background:var(--price); } .offer.up.rec .badge { background:var(--cov); }
+
+  .verdict { background:color-mix(in srgb,var(--engine) 8%,var(--card)); border:1px solid var(--engine); border-radius:12px; padding:15px 17px; font-size:15px; }
+  .verdict b { color:var(--ink); }
+
+  footer { margin-top:26px; padding-top:18px; border-top:1px solid var(--rule); color:var(--ink3); font-size:12px; font-family:var(--mono); line-height:1.8; }
+  footer a { color:var(--engine); }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Renewal / switch &#183; a guided walkthrough</p>
+    <h1>Win the renewal: <em>bring your current policy, the engine finds the deal that keeps you</em></h1>
+    <p class="lede">Each customer arrives with a policy they already have. They're one click from a cheaper
+      competitor. The engine works its one real lever &#8212; <b>coverage traded against price</b> &#8212;
+      two ways: <b>trim for a lower rate</b> to keep a price shopper, or <b>add coverage for a higher rate</b>
+      one who'll pay. It shows both and plays whichever <b>wins the deal</b>. Pick a customer and press play.</p>
+    <p class="simnote">Current policy is an input (a live system has it at renewal). The coverage&#8596;price
+      trade-off is calibrated to the real Allstate relationship (~$14/level); acceptance is modeled.</p>
+  </header>
+
+  <div class="who" id="who"></div>
+
+  <div class="transport">
+    <button class="pl go" id="play">&#9654; Play the walkthrough</button>
+    <button class="pl" id="next">Step &#8594;</button>
+    <button class="pl" id="restart">Restart</button>
+    <div class="beat" id="beat"></div>
+  </div>
+
+  <div class="caption" id="caption"></div>
+  <div class="stage" id="stage"></div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+"use strict";
+const LEVELS = [
+  {cov:4,  name:"State minimum", lim:"$15K / $30K liability"},
+  {cov:6,  name:"Basic",         lim:"$25K / $50K liability"},
+  {cov:8,  name:"Modest",        lim:"$50K / $100K liability"},
+  {cov:10, name:"Standard",      lim:"$100K / $300K + comp/collision"},
+  {cov:12, name:"Enhanced",      lim:"$250K / $500K + comp/collision"},
+  {cov:15, name:"Full",          lim:"$500K + full cover, roadside"},
+];
+const SLOPE = 14, RETAIN = 22;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const el=id=>document.getElementById(id);
+
+function pAccept(dCov, dPrem, curPrem, t){
+  const covTaste = 0.15 + 0.50*t, priceElast = 3.6 - 2.8*t;
+  return 1/(1+Math.exp(-(0.9 + covTaste*dCov - priceElast*(dPrem/curPrem)*8)));
+}
+
+// example customers, each arriving with a real current policy + what matters to them
+const CUST = {
+  marcus:{ name:"Marcus", cls:"price", tag:"price shopper", demo:"31 &#183; renewing &#183; wants to keep his price down",
+    ci:3, prem:700, t:0.15 },
+  priya:{ name:"Priya", cls:"cov", tag:"will pay for cover", demo:"45 &#183; two teen drivers &#183; wants real protection",
+    ci:3, prem:630, t:0.85 },
+  dan:{ name:"Dan", cls:"cov", tag:"under-insured", demo:"27 &#183; on bare-minimum cover &#183; just had a near-miss",
+    ci:1, prem:560, t:0.72 },
+};
+const ORDER=["marcus","priya","dan"];
+
+function offersFor(c){
+  const cur=LEVELS[c.ci], curPrem=c.prem;
+  const ti=Math.max(0,c.ci-1), tl=LEVELS[ti];
+  const tPrem = c.ci===0 ? curPrem-RETAIN : curPrem+(tl.cov-cur.cov)*SLOPE-RETAIN;
+  const tAcc = pAccept(tl.cov-cur.cov, tPrem-curPrem, curPrem, c.t);
+  const ui=Math.min(LEVELS.length-1,c.ci+1), ul=LEVELS[ui];
+  const uPrem = curPrem+(ul.cov-cur.cov)*SLOPE;
+  const uAcc = pAccept(ul.cov-cur.cov, uPrem-curPrem, curPrem, c.t);
+  const trimWins = tAcc>uAcc;
+  return {cur,curPrem, trim:{lv:tl,prem:tPrem,acc:tAcc}, up:{lv:ul,prem:uPrem,acc:uAcc}, trimWins};
+}
+
+let who="marcus", beat=0, timer=null;
+const C=()=>CUST[who];
+const NBEATS=5;   // 0 policy, 1 risk, 2 two moves, 3 read+accept, 4 recommend
+
+function renderWho(){
+  el("who").innerHTML=ORDER.map(k=>{const c=CUST[k];
+    return `<button class="whobtn ${c.cls} ${k===who?"on":""}" data-k="${k}">
+      <div class="n">${c.name}<span class="tag">${c.tag}</span></div><div class="d">${c.demo}</div></button>`;}).join("");
+  document.querySelectorAll(".whobtn").forEach(b=>b.addEventListener("click",()=>{ who=b.dataset.k; restart(); }));
+}
+
+function offerCard(kind, o, curPrem, opts){
+  opts=opts||{};
+  const d=o.prem-curPrem, dtxt=d===0?"":(d<0?` <span class="d">-$${-d}</span>`:` <span class="d">+$${d}</span>`);
+  const sub = kind==="trim" ? "less coverage, lower rate" : "more coverage, higher rate";
+  const acc = opts.showAcc ? `<div class="accept"><span>likely to accept</span><b>${Math.round(o.acc*100)}%</b></div>
+      <div class="abar"><i style="width:${Math.round(o.acc*100)}%"></i></div>` : "";
+  const cls = `offer ${kind} ${opts.rec?"rec":""} ${opts.dim?"dim":""}`;
+  return `<div class="${cls}"><span class="badge">Recommended - keeps them</span>
+    <div class="otype">${kind==="trim"?"Trim & save":"Trade up"}</div>
+    <div class="oname">${o.lv.name}</div><div class="olim">${o.lv.lim}</div>
+    <div class="oprem">$${o.prem}<small style="font-size:14px;font-weight:400;color:var(--ink3)">/yr</small>${dtxt}</div>
+    <div class="osub">${sub}</div>${acc}</div>`;
+}
+
+function render(){
+  const c=C(), o=offersFor(c);
+  document.querySelectorAll(".whobtn").forEach(b=>b.classList.toggle("on",b.dataset.k===who));
+  el("beat").innerHTML=Array.from({length:NBEATS},(_,k)=>`<i class="${k<=beat?"on":""}"></i>`).join("");
+  const cap=el("caption"), stage=el("stage");
+
+  const curCard = `<div class="cur"><div><div class="lab">Policy today</div>
+      <span class="nm">${c.name}</span> &#183; <span class="seg"><b>${o.cur.name}</b> &#8212; ${o.cur.lim}</span></div>
+      <div class="prem">$${o.curPrem}<small>/yr</small></div></div>`;
+
+  if(beat===0){
+    cap.innerHTML=`Meet <b>${c.name}</b>. They already have a policy: <b>${o.cur.name}</b> cover at <b>$${o.curPrem}</b>. The engine's job is to find a better deal &#8212; for both sides.`;
+    stage.innerHTML=curCard;
+  } else if(beat===1){
+    cap.innerHTML=`${c.name} is <b>shopping around</b>. Do nothing and a cheaper competitor wins them. But raising or dropping the price blindly either loses money or loses the customer.`;
+    stage.innerHTML=curCard+`<div class="risk">The only honest lever is <b>coverage traded against price</b> &#8212; the real relationship in the data (change coverage, and 78% of the time the price moves with it).</div>`;
+  } else if(beat===2){
+    cap.innerHTML=`So the engine builds <b>two</b> moves off ${c.name}'s current policy: <b class="win trim">trim</b> a tier for a lower rate, or <b class="win up">add</b> a tier for a higher rate. Which one wins?`;
+    stage.innerHTML=curCard+`<div class="opts">${offerCard("trim",o.trim,o.curPrem,{})}${offerCard("up",o.up,o.curPrem,{})}</div>`;
+  } else if(beat===3){
+    const focus = c.t<0.4?"price-focused":c.t>0.6?"protection-focused":"balanced";
+    cap.innerHTML=`It reads what matters to ${c.name}: <b>${focus}</b>. Now the accept rates split &#8212; ${c.t<0.5?`trimming keeps them, upselling pushes them out`:`the upgrade lands, a downgrade would feel like a downgrade`}.`;
+    stage.innerHTML=curCard+`<div class="opts">${offerCard("trim",o.trim,o.curPrem,{showAcc:true})}${offerCard("up",o.up,o.curPrem,{showAcc:true})}</div>`;
+  } else {
+    const w=o.trimWins?o.trim:o.up, kind=o.trimWins?"trim":"up";
+    const why = o.trimWins
+      ? `${c.name} leans on price, so more coverage would push them out. Trimming to <b>${w.lv.name}</b> at <b>$${w.prem}</b> cuts the rate enough to <span class="win trim">keep the policy on the books</span> &#8212; ${Math.round(w.acc*100)}% accept, versus losing it to a competitor.`
+      : `${c.name} will pay for protection, so there's room to grow. <b>${w.lv.name}</b> at <b>$${w.prem}</b> adds cover <span class="win up">and $${w.prem-o.curPrem} of premium</span>, and they still say yes (${Math.round(w.acc*100)}%). A win for both sides.`;
+    cap.innerHTML=`The engine plays the <b class="win ${kind}">${o.trimWins?"trim & save":"trade up"}</b> &#8212; the move that <b>keeps the deal</b>.`;
+    stage.innerHTML=curCard+
+      `<div class="opts">${offerCard("trim",o.trim,o.curPrem,{showAcc:true,rec:o.trimWins,dim:!o.trimWins})}${offerCard("up",o.up,o.curPrem,{showAcc:true,rec:!o.trimWins,dim:o.trimWins})}</div>`+
+      `<div class="verdict"><b>Engine's play:</b> ${why}</div>`;
+  }
+}
+
+function step(){ if(beat<NBEATS-1){ beat++; render(); } else stop(); }
+function play(){ if(timer){ stop(); return; } if(beat>=NBEATS-1){ beat=0; render(); }
+  el("play").innerHTML="&#10074;&#10074; Pause"; timer=setInterval(()=>{ if(beat<NBEATS-1) step(); else stop(); }, 2300); }
+function stop(){ if(timer) clearInterval(timer); timer=null; el("play").innerHTML="&#9654; Play the walkthrough"; }
+function restart(){ stop(); beat=0; render(); }
+
+el("play").addEventListener("click",play);
+el("next").addEventListener("click",()=>{ stop(); step(); });
+el("restart").addEventListener("click",restart);
+
+el("foot").innerHTML=
+  `The customer's current policy is an <b>input</b> &#8212; a live system has it at renewal or switch; the Allstate ` +
+  `research dataset only carries a fragment of the prior policy. What IS in the data, and what this is built on: ` +
+  `the <b>coverage&#8596;price trade-off</b> &#8212; when shoppers changed coverage, price moved the same way 78% of ` +
+  `the time (~$14/level here). Whether the customer accepts is a modeled response calibrated to the build's ` +
+  `elasticities. Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
+
+renderWho(); render();
+</script>
