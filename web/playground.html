@@ -1,4 +1,4 @@
-<title>Replay a real shopper's clickstream — and close the sale</title>
+<title>Replay a real shopper's clickstream &#8212; and close the sale</title>
 <style>
   :root {
     color-scheme: light;
@@ -118,10 +118,10 @@
 
 <div class="wrap">
   <header>
-    <p class="eyebrow">Interactive · real Allstate clickstreams</p>
-    <h1>Replay a real shopper's clicks — <em>and watch the engine close the sale</em></h1>
+    <p class="eyebrow">Interactive &#183; real Allstate clickstreams</p>
+    <h1>Replay a real shopper's clicks &#8212; <em>and watch the engine close the sale</em></h1>
     <p class="lede">These are <b>real</b> people shopping for car insurance: each viewed a string of
-      quotes — nudging coverage up or down and watching the price move — before buying. Play a
+      quotes &#8212; nudging coverage up or down and watching the price move &#8212; before buying. Play a
       session click by click. The engine reads the <b>trajectory</b>, works out whether they're
       price- or coverage-driven, and surfaces the offer that closes the sale. Then compare its call
       to what they actually bought.</p>
@@ -131,14 +131,14 @@
 
   <div class="stage">
     <div class="who" id="who"></div>
-    <div class="streamlabel">Their real clickstream — one quote at a time</div>
+    <div class="streamlabel">Their real clickstream &#8212; one quote at a time</div>
     <div class="stream" id="stream"></div>
 
     <div class="readgrid">
       <div class="box">
         <h3>What the engine reads</h3>
         <div class="gauge"><div class="track"><div class="mark" id="mark"></div></div>
-          <div class="glab"><span>price-driven</span><span id="gmid">reading…</span><span>coverage-driven</span></div></div>
+          <div class="glab"><span>price-driven</span><span id="gmid">reading&#8230;</span><span>coverage-driven</span></div></div>
         <div class="readtype" id="readtype">Press Play or Step to begin</div>
         <div class="rationale" id="rationale">Each quote they view is a clue. The engine watches which way they move.</div>
       </div>
@@ -146,8 +146,8 @@
         <h3>Offer the engine surfaces to close</h3>
         <div class="off">
           <div class="lab">Engine leads with</div>
-          <div class="name" id="offName">—</div>
-          <div class="det" id="offDet">waiting for the first clicks…</div>
+          <div class="name" id="offName">&#8212;</div>
+          <div class="det" id="offDet">waiting for the first clicks&#8230;</div>
         </div>
         <div class="why" id="offWhy"></div>
       </div>
@@ -156,9 +156,9 @@
     <div class="close" id="close"></div>
 
     <div class="controls">
-      <button class="ctl run" id="play">▶ Play the session</button>
-      <button class="ctl" id="step">⏭ Step</button>
-      <button class="ctl" id="reset">⟲ Reset</button>
+      <button class="ctl run" id="play">&#9654; Play the session</button>
+      <button class="ctl" id="step">&#9197; Step</button>
+      <button class="ctl" id="reset">&#10226; Reset</button>
     </div>
   </div>
 
@@ -171,15 +171,15 @@ const COVMAX = 18;
 // ---- three curated REAL Allstate sessions (ordered quotes + actual purchase) -------
 const SHOPPERS = [
   { id: "10000128", title: "The price-cutter", tag: "price",
-    traits: "24 yrs · renter · Maine", note: "young driver",
+    traits: "24 yrs \u00b7 renter \u00b7 Maine", note: "young driver",
     clicks: [ {cov:14,cost:655},{cov:11,cost:637},{cov:7,cost:569},{cov:7,cost:569},{cov:8,cost:567},{cov:8,cost:573} ],
     bought: {cov:8,cost:573} },
   { id: "10000112", title: "The upgrader", tag: "cov",
-    traits: "41 yrs · homeowner · Tennessee", note: "",
+    traits: "41 yrs \u00b7 homeowner \u00b7 Tennessee", note: "",
     clicks: [ {cov:4,cost:530},{cov:4,cost:530},{cov:13,cost:670},{cov:13,cost:670},{cov:13,cost:670},{cov:13,cost:670} ],
     bought: {cov:13,cost:688} },
   { id: "10000034", title: "The waverer", tag: "bal",
-    traits: "61 yrs · homeowner · Oklahoma", note: "",
+    traits: "61 yrs \u00b7 homeowner \u00b7 Oklahoma", note: "",
     clicks: [ {cov:10,cost:610},{cov:13,cost:613},{cov:14,cost:608},{cov:14,cost:612},{cov:12,cost:600},{cov:12,cost:600} ],
     bought: {cov:12,cost:600} },
 ];
@@ -197,12 +197,12 @@ function read(clicks, k) {   // k = quotes revealed so far (1..n)
   let sig = 0;
   for (let i = 1; i < k; i++) {
     const d = clicks[i].cov - clicks[i - 1].cov;
-    if (d > 0) sig += 1.0;            // adding coverage → coverage-driven signal
-    else if (d < 0) sig += -1.5;     // trimming coverage → stronger price signal
+    if (d > 0) sig += 1.0;            // adding coverage \u2192 coverage-driven signal
+    else if (d < 0) sig += -1.5;     // trimming coverage \u2192 stronger price signal
     if (clicks[i].cost - clicks[i - 1].cost < -15) sig += -0.4;  // chasing a lower price
   }
   sig += (clicks[k - 1].cov - clicks[0].cov) * 0.4;              // net coverage drift
-  const lean = Math.tanh(sig / 3.5);                            // -1 price … +1 coverage
+  const lean = Math.tanh(sig / 3.5);                            // -1 price \u2026 +1 coverage
   const settled = k >= 2 && clicks[k - 1].cov === clicks[k - 2].cov
                   && clicks[k - 1].cost === clicks[k - 2].cost;
   return { lean, settled };
@@ -218,7 +218,7 @@ function surfaced(s, k) {   // the offer the engine leads with, given the read a
 function renderTabs() {
   document.getElementById("tabs").innerHTML = SHOPPERS.map((s, i) =>
     `<button class="tab ${i === si ? "on" : ""}" data-i="${i}">
-       <b>${s.title}</b><span>real cust ${s.id} · ${s.clicks.length} quotes</span></button>`).join("");
+       <b>${s.title}</b><span>real cust ${s.id} \u00b7 ${s.clicks.length} quotes</span></button>`).join("");
   document.querySelectorAll(".tab").forEach(t =>
     t.addEventListener("click", () => { stop(); si = +t.dataset.i; step = 0; render(); }));
 }
@@ -236,7 +236,7 @@ function render() {
     if (i > 0) {
       const d = q.cov - prev.cov;
       const cls = d > 0 ? "up" : d < 0 ? "down" : "flat";
-      const gl = d > 0 ? "↑" : d < 0 ? "↓" : "→";
+      const gl = d > 0 ? "\u2191" : d < 0 ? "\u2193" : "\u2192";
       html += `<div class="qwrap"><span class="arrow ${cls}">${gl}</span></div>`;
     }
     html += `<div class="qwrap"><div class="chip ${i === step - 1 ? "cur" : ""}">
@@ -247,20 +247,20 @@ function render() {
   }
   // once all quotes are shown, append what they actually bought
   if (step >= s.clicks.length) {
-    html += `<div class="qwrap"><span class="arrow flat">⇒</span></div>`;
+    html += `<div class="qwrap"><span class="arrow flat">\u21d2</span></div>`;
     html += `<div class="qwrap"><div class="chip bought">
-      <div class="bt">★ bought</div>
+      <div class="bt">\u2605 bought</div>
       <div class="cov"><i style="width:${covpct(s.bought.cov)}%"></i></div>
       <div class="covn">cov ${covpct(s.bought.cov)}%</div>
       <div class="price">$${s.bought.cost}</div></div></div>`;
   }
-  document.getElementById("stream").innerHTML = html || `<span style="color:var(--ink3);font-family:var(--mono);font-size:13px">Press Play or Step →</span>`;
+  document.getElementById("stream").innerHTML = html || `<span style="color:var(--ink3);font-family:var(--mono);font-size:13px">Press Play or Step \u2192</span>`;
 
   // engine read
   const rt = document.getElementById("readtype"), rat = document.getElementById("rationale");
   const mark = document.getElementById("mark"), gmid = document.getElementById("gmid");
   if (step === 0) {
-    mark.style.left = "50%"; gmid.textContent = "reading…";
+    mark.style.left = "50%"; gmid.textContent = "reading\u2026";
     rt.textContent = "Press Play or Step to begin"; rt.className = "readtype";
     rat.textContent = "Each quote they view is a clue. The engine watches which way they move.";
     setSurface(null);
@@ -281,23 +281,23 @@ function rationale(s, k, settled) {
   const q = s.clicks[k - 1], prev = k > 1 ? s.clicks[k - 2] : null;
   if (k === 1) return `First quote in: <b>cov ${covpct(q.cov)}% at $${q.cost}</b>. Watching where they go next.`;
   const dCov = q.cov - prev.cov, dP = q.cost - prev.cost;
-  if (settled) return `They've stopped moving — parked at <b>cov ${covpct(q.cov)}% for $${q.cost}</b>. Looks ready to buy.`;
-  if (dCov < 0) return `They just <b>cut coverage</b> (${covpct(prev.cov)}%→${covpct(q.cov)}%) to drop the price ${dP<0?`$${-dP}`:""}. That's a price-seeker.`;
-  if (dCov > 0) return `They just <b>added coverage</b> (${covpct(prev.cov)}%→${covpct(q.cov)}%) and accepted ${dP>0?`+$${dP}`:"the price"}. They'll pay for cover.`;
+  if (settled) return `They've stopped moving \u2014 parked at <b>cov ${covpct(q.cov)}% for $${q.cost}</b>. Looks ready to buy.`;
+  if (dCov < 0) return `They just <b>cut coverage</b> (${covpct(prev.cov)}%\u2192${covpct(q.cov)}%) to drop the price ${dP<0?`$${-dP}`:""}. That's a price-seeker.`;
+  if (dCov > 0) return `They just <b>added coverage</b> (${covpct(prev.cov)}%\u2192${covpct(q.cov)}%) and accepted ${dP>0?`+$${dP}`:"the price"}. They'll pay for cover.`;
   return `Same coverage, price nudged ${dP>0?"up":dP<0?"down":"flat"}. Holding steady.`;
 }
 
 function setSurface(sf) {
   const nm = document.getElementById("offName"), det = document.getElementById("offDet"),
         why = document.getElementById("offWhy");
-  if (!sf) { nm.textContent = "—"; det.textContent = "waiting for the first clicks…"; why.textContent = ""; return; }
+  if (!sf) { nm.textContent = "\u2014"; det.textContent = "waiting for the first clicks\u2026"; why.textContent = ""; return; }
   const names = { lean: "Lean quote", rich: "Full-coverage plan", current: "Where they are now", settled: "Their settled quote" };
   nm.textContent = names[sf.kind];
-  det.innerHTML = `cov ${covpct(sf.off.cov)}% · <b>$${sf.off.cost}/yr</b>`;
-  const w = { lean: "Lead with the cheap quote — pushing coverage now would lose the sale.",
-             rich: "Lead with more coverage — they've shown they'll pay for it.",
-             current: "Mirror where they've landed — don't disrupt a forming decision.",
-             settled: "They've decided — present this and close." };
+  det.innerHTML = `cov ${covpct(sf.off.cov)}% \u00b7 <b>$${sf.off.cost}/yr</b>`;
+  const w = { lean: "Lead with the cheap quote \u2014 pushing coverage now would lose the sale.",
+             rich: "Lead with more coverage \u2014 they've shown they'll pay for it.",
+             current: "Mirror where they've landed \u2014 don't disrupt a forming decision.",
+             settled: "They've decided \u2014 present this and close." };
   why.textContent = w[sf.kind];
 }
 
@@ -307,18 +307,18 @@ function showClose() {
   const start = s.clicks[0];
   let take;
   if (sf.kind === "lean")
-    take = `The engine caught the coverage cuts early and would surface the <b>$${s.lean.cost} lean quote</b> — closing the sale instead of re-quoting the $${start.cost} plan they already walked back from.`;
+    take = `The engine caught the coverage cuts early and would surface the <b>$${s.lean.cost} lean quote</b> \u2014 closing the sale instead of re-quoting the $${start.cost} plan they already walked back from.`;
   else if (sf.kind === "rich")
-    take = `The engine saw them climbing and would lead with <b>full coverage</b> — a $${s.rich.cost} sale, <b>+$${s.rich.cost - start.cost}</b> more than the $${start.cost} they started at.`;
+    take = `The engine saw them climbing and would lead with <b>full coverage</b> \u2014 a $${s.rich.cost} sale, <b>+$${s.rich.cost - start.cost}</b> more than the $${start.cost} they started at.`;
   else
-    take = `The engine let them settle and would close on the <b>balanced $${sf.off.cost} plan</b> — the one they actually wanted — without over-pushing.`;
+    take = `The engine let them settle and would close on the <b>balanced $${sf.off.cost} plan</b> \u2014 the one they actually wanted \u2014 without over-pushing.`;
   document.getElementById("close").className = "close show";
   document.getElementById("close").innerHTML =
     `<h3>Closing the sale</h3>
      <div class="cmp">
-       <span>Engine surfaces: <b>cov ${covpct(sf.off.cov)}% · $${sf.off.cost}</b></span>
-       <span>They actually bought: <b>cov ${covpct(s.bought.cov)}% · $${s.bought.cost}</b></span>
-       <span class="match">${matchCov ? "✓ same coverage tier — the clickstream predicted the purchase" : "≈ same neighbourhood"}</span>
+       <span>Engine surfaces: <b>cov ${covpct(sf.off.cov)}% \u00b7 $${sf.off.cost}</b></span>
+       <span>They actually bought: <b>cov ${covpct(s.bought.cov)}% \u00b7 $${s.bought.cost}</b></span>
+       <span class="match">${matchCov ? "\u2713 same coverage tier \u2014 the clickstream predicted the purchase" : "\u2248 same neighbourhood"}</span>
      </div>
      <div class="take">${take}</div>`;
 }
@@ -333,10 +333,10 @@ function play() {
   const s = cur();
   if (timer) { stop(); return; }
   if (step >= s.clicks.length) { step = 0; document.getElementById("close").className = "close"; render(); }
-  document.getElementById("play").textContent = "❚❚ Pause";
+  document.getElementById("play").textContent = "\u275a\u275a Pause";
   timer = setInterval(() => { advance(); if (step >= cur().clicks.length) stop(); }, 1100);
 }
-function stop() { if (timer) clearInterval(timer); timer = null; document.getElementById("play").textContent = "▶ Play the session"; }
+function stop() { if (timer) clearInterval(timer); timer = null; document.getElementById("play").textContent = "\u25b6 Play the session"; }
 function reset() { stop(); step = 0; document.getElementById("close").className = "close"; render(); }
 
 document.getElementById("play").addEventListener("click", play);
@@ -344,10 +344,10 @@ document.getElementById("step").addEventListener("click", () => { stop(); docume
 document.getElementById("reset").addEventListener("click", reset);
 
 document.getElementById("foot").innerHTML =
-  `The <b>clicks and the purchase are 100% real</b> — actual quote sessions from the Allstate ` +
+  `The <b>clicks and the purchase are 100% real</b> \u2014 actual quote sessions from the Allstate ` +
   `Purchase Prediction dataset (Kaggle). The engine's read of the trajectory and the offer it ` +
   `surfaces are the model's call; that the call lands on what they actually bought is the ` +
-  `validation. Whether surfacing it earlier <i>drives</i> the sale is the projected value — the ` +
+  `validation. Whether surfacing it earlier <i>drives</i> the sale is the projected value \u2014 the ` +
   `data is buyers-only, so conversion itself is modelled (calibrated + disclosed in the build). ` +
   `Code + write-up: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
 
