@@ -69,6 +69,17 @@
   .off .obar { height:7px; border-radius:4px; background:var(--rule); overflow:hidden; margin-bottom:0; }
   .off .obar>i { display:block; height:100%; background:var(--engine); border-radius:4px; }
   .off .op { font-family:var(--mono); font-weight:800; font-size:20px; }
+  .off .op .list { text-decoration:line-through; color:var(--ink3); font-weight:400; font-size:14px; margin-right:3px; }
+  .dynprice { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:16px; padding:12px 14px;
+              background:var(--card2); border:1px solid var(--rule); border-radius:11px; font-family:var(--mono); font-size:13px; }
+  .dynprice .dl { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--engine); font-weight:700;
+                  border:1px solid var(--engine); border-radius:6px; padding:3px 8px; }
+  .dynprice .dseg b { font-size:16px; } .dynprice b.up { color:var(--cov); } .dynprice b.dn { color:var(--price); }
+  .dynprice .dar { color:var(--ink3); }
+  .dynprice .ddelta { font-weight:700; padding:2px 8px; border-radius:6px; }
+  .dynprice .ddelta.up { color:var(--cov); background:color-mix(in srgb,var(--cov) 14%,transparent); }
+  .dynprice .ddelta.dn { color:var(--price); background:color-mix(in srgb,var(--price) 14%,transparent); }
+  .dynprice .dwhy { color:var(--ink3); font-family:var(--sans); font-size:12.5px; }
   .off.lead { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 16%,transparent); }
   .off.take { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 20%,transparent); }
   .off.pass { opacity:.5; }
@@ -188,7 +199,7 @@ const DSRC={
   3:{a:["shopper","kinesis"], t:`Click 1 of 3 streams through <b>Kinesis</b> &#8212; the clickstream backbone.`},
   4:{a:["kinesis","flink"], t:`The clicks flow to <b>Managed Flink</b>, which folds them into the Thompson posteriors.`},
   5:{a:["flink","dynamo"], t:`<b>Flink</b> updates the <b>DynamoDB</b> posteriors in near-real-time &#8212; the read sharpens with every click.`},
-  6:{a:["lambda","dynamo"], t:`<b>Lambda</b> reads the posteriors from <b>DynamoDB</b> and prices the offer in a few milliseconds.`},
+  6:{a:["lambda","dynamo"], t:`<b>Lambda</b> reads the posteriors from <b>DynamoDB</b> and <b>sets the dynamic price</b> &#8212; the personalized premium, off the list &#8212; in a few milliseconds.`},
 };
 function renderPipe(b){
   const d=DSRC[b]||DSRC[6], act=new Set(d.a);
@@ -229,13 +240,15 @@ function render(){
 
   // helper to draw the 3 offers with per-offer state {lead,take,pass,steer}
   const offersHTML=(state,override)=>`<div class="offers">`+["lean","bal","rich"].map(k=>{const o=OFF[k],st=state[k]||"";
-    const price=(override&&override.key===k)?override.premium:o.premium;
+    const isOv=override&&override.key===k;
+    const opHTML=isOv ? `<span class="list">$${o.premium}</span> <b>$${override.premium}</b><small>/yr</small>`
+                      : `$${o.premium}<small>/yr</small>`;
     return `<div class="off ${st}">
       <span class="flag lead">engine opens here</span><span class="flag take">clicked</span>
       <span class="flag pass">skipped</span><span class="flag steer">steered here</span>
       <div class="on">${o.name}</div><div class="oc">${o.limits}</div>
       <div class="obar"><i style="width:${covpct(o.cov)}%"></i></div>
-      <div class="oc2">${o.extra}</div><div class="op">$${price}<small>/yr</small></div></div>`;}).join("")+`</div>`;
+      <div class="oc2">${o.extra}</div><div class="op">${opHTML}</div></div>`;}).join("")+`</div>`;
 
   const gaugeHTML=(post,label)=>`<div class="gaugewrap"><div class="gl"><span>price-driven</span><span>coverage-driven</span></div>
     <div class="gauge"><div class="mk" style="left:${gauge(post)}%"></div></div><div class="readnow">${label}</div></div>`;
@@ -274,13 +287,20 @@ function render(){
     const steerK= eng.cov<=7?"lean":eng.cov>=13?"rich":"bal";
     const flatPrem=costPrice(STD_COV);
     const state={}; s.clicks.forEach(x=>state[x.k]=x.take?"take":"pass"); state[steerK]="steer";
-    cap.innerHTML=`Confirmed <b class="em ${conf}">${NAME[conf]}</b>. The engine <b>steers ${s.name}</b> to the
-      <b>${OFF[steerK].name}</b> plan (${OFF[steerK].limits}) at <b>$${eng.premium}</b> &#8212; ${conf==="price"?"a sharp price it can actually close":"richer cover she'll happily pay for"}.`;
+    const listPrem=OFF[steerK].premium, delta=eng.premium-listPrem, dir=delta<0?"dn":"up";
+    cap.innerHTML=`Confirmed <b class="em ${conf}">${NAME[conf]}</b>. Two moves: <b>steer</b> ${s.name} to the
+      <b>${OFF[steerK].name}</b> plan, then <b>price it dynamically</b> at <b>$${eng.premium}</b>
+      (${delta<0?`$${-delta} below`:`$${delta} above`} the $${listPrem} list).`;
     let why = conf==="price"
       ? `A flat <b>$${flatPrem}</b> quote would have been too high &#8212; ${s.name} walks. The engine's <b>$${eng.premium}</b> keeps her.`
       : `A flat <b>$${flatPrem}</b> quote leaves about <b>$${eng.premium-flatPrem}</b> on the table &#8212; ${s.name} would have paid more.`;
-    stage.innerHTML=`<div class="steplab">Step 4 &#183; steer to the right coverage &amp; close</div>
+    stage.innerHTML=`<div class="steplab">Step 4 &#183; steer the coverage, then set the price</div>
       ${offersHTML(state,{key:steerK,premium:eng.premium})}${gaugeHTML(post,`Confirmed <b class="${conf}">${NAME[conf]}</b> (${Math.round(post[conf]*100)}% sure).`)}
+      <div class="dynprice"><span class="dl">Dynamic price</span>
+        <span class="dseg">list <b>$${listPrem}</b></span><span class="dar">&#8594;</span>
+        <span class="dseg">${s.name}'s price <b class="${dir}">$${eng.premium}</b></span>
+        <span class="ddelta ${dir}">${delta<0?"":"+"}$${delta}</span>
+        <span class="dwhy">${conf==="price"?"discount to convert a price-sensitive shopper":"markup a coverage-lover will accept"}</span></div>
       <div class="close show"><b>Sale closed &#8212;</b> <span class="big">${OFF[steerK].name} plan (${OFF[steerK].limits}) at $${eng.premium}/yr</span>. ${why}</div>`;
   }
   renderPipe(beat);
