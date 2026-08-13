@@ -68,6 +68,15 @@
   .chip .price { font-family:var(--mono); font-weight:700; font-size:17px; margin-top:3px; font-variant-numeric:tabular-nums; }
   .chip.bought .price { color:var(--gold); }
   .chip .bt { font-family:var(--mono); font-size:9.5px; color:var(--gold); text-transform:uppercase; letter-spacing:.05em; }
+  .chip .tag { font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.04em; margin:3px 0 1px; }
+  .chip .tag.move { color:var(--engine); } .chip .tag.rq, .chip .tag.open { color:var(--ink3); }
+  .chip.req { opacity:.62; border-style:dashed; } .chip.req.cur { opacity:1; }
+  .arrow.rq { color:var(--ink3); opacity:.65; font-size:16px; }
+  .streamkey { display:flex; flex-wrap:wrap; gap:6px 16px; margin:10px 0 0; font-family:var(--mono);
+               font-size:11px; color:var(--ink3); }
+  .streamkey b { font-size:14px; } .streamkey b.up { color:var(--cov); }
+  .streamkey b.down { color:var(--price); } .streamkey b.rq { color:var(--ink3); }
+  .streamkey .k3 { color:var(--ink3); opacity:.8; }
 
   .readgrid { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; margin-top:20px; }
   @media (max-width:720px){ .readgrid { grid-template-columns:1fr; } }
@@ -133,6 +142,13 @@
     <div class="who" id="who"></div>
     <div class="streamlabel">Their real clickstream &#8212; one quote at a time</div>
     <div class="stream" id="stream"></div>
+    <div class="streamkey">
+      <span><b class="up">&#8593;</b> added coverage</span>
+      <span><b class="down">&#8595;</b> cut coverage</span>
+      <span class="k3">&#8212; calculator moves the engine reads</span>
+      <span><b class="rq">=</b> re-quote, same plan</span>
+      <span class="k3">&#8212; price noise it ignores</span>
+    </div>
 
     <div class="readgrid">
       <div class="box">
@@ -199,7 +215,9 @@ function read(clicks, k) {   // k = quotes revealed so far (1..n)
     const d = clicks[i].cov - clicks[i - 1].cov;
     if (d > 0) sig += 1.0;            // adding coverage \u2192 coverage-driven signal
     else if (d < 0) sig += -1.5;     // trimming coverage \u2192 stronger price signal
-    if (clicks[i].cost - clicks[i - 1].cost < -15) sig += -0.4;  // chasing a lower price
+    // price only counts as a DECISION when they also reconfigured (a calculator move);
+    // same-coverage re-quotes are noise the engine ignores
+    if (d !== 0 && clicks[i].cost - clicks[i - 1].cost < -15) sig += -0.4;
   }
   sig += (clicks[k - 1].cov - clicks[0].cov) * 0.4;              // net coverage drift
   const lean = Math.tanh(sig / 3.5);                            // -1 price \u2026 +1 coverage
@@ -233,14 +251,19 @@ function render() {
   let html = "";
   for (let i = 0; i < step; i++) {
     const q = s.clicks[i], prev = i ? s.clicks[i - 1] : null;
+    const changed = prev && q.cov !== prev.cov;          // a real calculator move vs a re-quote
     if (i > 0) {
       const d = q.cov - prev.cov;
-      const cls = d > 0 ? "up" : d < 0 ? "down" : "flat";
-      const gl = d > 0 ? "\u2191" : d < 0 ? "\u2193" : "\u2192";
-      html += `<div class="qwrap"><span class="arrow ${cls}">${gl}</span></div>`;
+      const cls = d > 0 ? "up" : d < 0 ? "down" : "rq";
+      const gl = d > 0 ? "\u2191" : d < 0 ? "\u2193" : "=";
+      const tt = d > 0 ? "added coverage" : d < 0 ? "cut coverage" : "same coverage \u2014 re-quote";
+      html += `<div class="qwrap"><span class="arrow ${cls}" title="${tt}">${gl}</span></div>`;
     }
-    html += `<div class="qwrap"><div class="chip ${i === step - 1 ? "cur" : ""}">
-      <div class="step">quote ${i + 1}</div>
+    const tag = i === 0 ? `<div class="tag open">opening quote</div>`
+              : changed ? `<div class="tag move">reconfigured</div>`
+              : `<div class="tag rq">re-quote</div>`;
+    html += `<div class="qwrap"><div class="chip ${i === step - 1 ? "cur" : ""} ${prev && !changed ? "req" : ""}">
+      <div class="step">quote ${i + 1}</div>${tag}
       <div class="cov"><i style="width:${covpct(q.cov)}%"></i></div>
       <div class="covn">cov ${covpct(q.cov)}%</div>
       <div class="price">$${q.cost}</div></div></div>`;
@@ -284,7 +307,7 @@ function rationale(s, k, settled) {
   if (settled) return `They've stopped moving \u2014 parked at <b>cov ${covpct(q.cov)}% for $${q.cost}</b>. Looks ready to buy.`;
   if (dCov < 0) return `They just <b>cut coverage</b> (${covpct(prev.cov)}%\u2192${covpct(q.cov)}%) to drop the price ${dP<0?`$${-dP}`:""}. That's a price-seeker.`;
   if (dCov > 0) return `They just <b>added coverage</b> (${covpct(prev.cov)}%\u2192${covpct(q.cov)}%) and accepted ${dP>0?`+$${dP}`:"the price"}. They'll pay for cover.`;
-  return `Same coverage, price nudged ${dP>0?"up":dP<0?"down":"flat"}. Holding steady.`;
+  return `Same plan, just re-quoted (${dP>0?`$${dP} higher`:dP<0?`$${-dP} lower`:"no change"}) \u2014 not a coverage decision, so the engine ignores this wiggle.`;
 }
 
 function setSurface(sf) {
