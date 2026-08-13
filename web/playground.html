@@ -54,7 +54,11 @@
 
   .tests { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   @media (max-width:620px){ .tests { grid-template-columns:1fr; } }
-  .test { border:1.5px solid var(--rule); border-radius:11px; padding:12px; text-align:center; background:var(--card2); transition:border-color .2s; }
+  .test { border:1.5px solid var(--rule); border-radius:11px; padding:12px; text-align:center; background:var(--card2);
+          cursor:pointer; transition:border-color .18s, transform .1s, box-shadow .18s; user-select:none; }
+  .test:hover { transform:translateY(-2px); border-color:var(--engine); }
+  .test:focus-visible { outline:2px solid var(--engine); outline-offset:2px; }
+  .test.yes { border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 16%,transparent); }
   .test .tn { font-weight:660; font-size:14px; } .test .tc { font-family:var(--mono); font-size:11px; color:var(--ink3); margin:3px 0 6px; }
   .test .tp { font-family:var(--mono); font-weight:700; font-size:17px; }
   .test .resp { margin-top:9px; font-family:var(--mono); font-size:12px; font-weight:700; padding:4px; border-radius:6px; }
@@ -123,7 +127,7 @@
     <div class="note" id="s1note"></div></div>
 
   <div class="step" id="s2"><div class="sh"><span class="num">2</span>
-    <h2>Float a few test offers</h2><span class="sub">the engine probes lean / balanced / rich and watches the response</span></div>
+    <h2>Float a few test offers &#8212; you're the shopper</h2><span class="sub">click the ones you'd actually take; everything below updates live</span></div>
     <div class="tests" id="tests"></div></div>
 
   <div class="step" id="s3"><div class="sh"><span class="num">3</span>
@@ -135,7 +139,8 @@
     <div class="verdict" id="verdict"></div></div>
 
   <div class="step" id="s4"><div class="sh"><span class="num">4</span>
-    <h2>Lock the price &#8212; and the payoff</h2><span class="sub">expected revenue per shopper, across everyone in this cell</span></div>
+    <h2>Lock the price &#8212; and the payoff</h2><span class="sub">your quote, from your clicks &#8212; then the payoff at scale</span></div>
+    <p id="personal" style="font-size:15px; margin:0 0 14px; color:var(--ink)"></p>
     <div class="final">
       <div class="offcard"><div class="ol">Engine's quote</div>
         <div class="oc" id="foff_c"></div><div class="op" id="foff_p"></div><div class="om" id="foff_m"></div></div>
@@ -180,63 +185,29 @@ const age=document.getElementById("age"), home=document.getElementById("home"), 
 function bars(el, dist){ el.innerHTML = ["price","balanced","coverage"].map(q=>
   `<div class="brow"><span>${NAME[q]}</span><span class="bt"><span class="bf ${q}" style="width:${Math.round(dist[q]*100)}%"></span></span><span>${Math.round(dist[q]*100)}%</span></div>`).join(""); }
 
-let truePersona=null;
+let PRIOR=null, START=STD_COV, engaged={lean:false,bal:false,rich:false}, touched=false;
 
-function run(){
+// load a demographic cell: step 1 + the population payoff bars, then hand control to the viewer
+function setCell(){
   const c=getCell();
   ["s1","s2","s3","s4"].forEach(id=>document.getElementById(id).classList.add("on"));
-  const prior={price:c.price,balanced:c.balanced,coverage:c.coverage};
+  const prior={price:c.price,balanced:c.balanced,coverage:c.coverage}; PRIOR=prior;
 
-  // STEP 1 \u2014 lookalikes
   document.getElementById("s1sub").textContent = `${c.n.toLocaleString()} real shoppers like this`;
   document.getElementById("mix").innerHTML =
     `<span class="p" style="width:${prior.price*100}%">${Math.round(prior.price*100)}%</span>`+
     `<span class="b" style="width:${prior.balanced*100}%">${Math.round(prior.balanced*100)}%</span>`+
     `<span class="c" style="width:${prior.coverage*100}%">${Math.round(prior.coverage*100)}%</span>`;
-  const startCov = clamp(Math.round(c.avg_cov_pct/100*COVMAX),4,COVMAX);
+  const startCov = clamp(Math.round(c.avg_cov_pct/100*COVMAX),4,COVMAX); START=startCov;
   document.getElementById("lkstat").innerHTML =
     `<span>bought avg <b>${c.avg_cov_pct}%</b> coverage</span><span>avg premium <b>$${c.avg_premium}</b></span>`+
     `<span><b>${c.pct_cheapest}%</b> took the cheapest</span><span>&#8594; start near <b>cov ${covpct(startCov)}%</b></span>`;
   document.getElementById("s1note").innerHTML =
     `Good warm start on <b>coverage</b> &#8212; but <b>${Math.round(prior.price*100)}%</b> here are price-driven, `+
-    `about the same 1-in-4 as everywhere. Demographics can't spot who'll walk on price. That needs a test.`;
+    `about the same 1-in-4 as everywhere. Demographics can't spot who'll walk on price. That's what your clicks decide.`;
 
-  // hidden truth: draw this shopper's persona from the cell's REAL mix
-  const r=Math.random(); truePersona = r<prior.price?"price":r<prior.price+prior.balanced?"balanced":"coverage";
-
-  // STEP 2 \u2014 test offers, observe responses (modeled)
-  const resp = TESTS.map(o=>({...o, interested: Math.random() < pBuy(truePersona,o.premium,o.cov)}));
-  document.getElementById("tests").innerHTML = resp.map(o=>
-    `<div class="test ${o.interested?"yes":"no"}"><div class="tn">${o.name}</div>`+
-    `<div class="tc">cov ${covpct(o.cov)}% &#183; $${o.premium}</div><div class="tp">$${o.premium}</div>`+
-    `<div class="resp">${o.interested?"engaged":"passed"}</div></div>`).join("");
-
-  // STEP 3 \u2014 confirm: posterior over personas = prior * likelihood of responses
-  const post={}; let Z=0;
-  for(const q of ["price","balanced","coverage"]){ let L=1;
-    for(const o of resp){ const pc=pBuy(q,o.premium,o.cov); L*= o.interested?pc:(1-pc); }
-    post[q]=prior[q]*L; Z+=post[q]; }
-  for(const q in post) post[q]/=Z;
-  bars(document.getElementById("prior"), prior);
-  bars(document.getElementById("post"), post);
-  const conf=argmax(post);
-  document.getElementById("verdict").innerHTML =
-    `They engaged with the ${resp.filter(o=>o.interested).map(o=>o.name.toLowerCase()).join(" & ")||"none of the"} `+
-    `offer${resp.filter(o=>o.interested).length===1?"":"s"} &#8594; confirmed <b class="${conf}">${NAME[conf]}</b> `+
-    `(${Math.round(post[conf]*100)}% sure, up from ${Math.round(prior[conf]*100)}%).`;
-
-  // STEP 4 \u2014 price to the confirmed persona; results averaged over the whole cell
-  const eng=engineOffer(conf);
-  document.getElementById("foff_c").textContent = `coverage ${covpct(eng.cov)}%`;
-  document.getElementById("foff_p").innerHTML = `$${eng.premium}<small>/yr</small>`;
-  const flatPrem=costPrice(STD_COV);
-  document.getElementById("foff_m").innerHTML = eng.premium<flatPrem
-    ? `priced <b>down</b> to win them` : eng.cov>STD_COV ? `<b>more coverage</b>, they'll pay` : `tuned to what they'll accept`;
-  // averaged over everyone in this cell (weight by the real mix)
-  //  flat  = standard mid bundle, cost price, for all
-  //  prior = demographics set the COVERAGE (their real signal), cost price, no demand pricing
-  //  eng   = coverage + demand-based price per confirmed persona
-  const priorOff={ cov:startCov, premium:costPrice(startCov) };
+  // population payoff (cell-level, independent of the viewer's clicks)
+  const flatPrem=costPrice(STD_COV), priorOff={cov:startCov,premium:costPrice(startCov)};
   let revFlat=0, revPrior=0, revEng=0;
   for(const q of ["price","balanced","coverage"]){ const w=prior[q];
     revFlat += w * pBuy(q,flatPrem,STD_COV)*flatPrem;
@@ -245,17 +216,70 @@ function run(){
   const mx=Math.max(revFlat,revPrior,revEng)*1.04;
   const setb=(id,v,lab)=>{const e=document.getElementById(id); e.style.width=(v/mx*100)+"%"; e.textContent=`$${v.toFixed(0)} ${lab}`;};
   setb("r_flat",revFlat,"flat"); setb("r_prior",revPrior,"prior"); setb("r_eng",revEng,"engine");
-  const dPrior=(revPrior/revFlat-1)*100, dEng=(revEng/revFlat-1)*100;
   document.getElementById("liftline").innerHTML =
-    `Engine <b>+${dEng.toFixed(0)}%</b> vs flat. Demographics alone add <b>+${dPrior.toFixed(0)}%</b> `+
-    `(coverage targeting) &#8212; the clicks find the price-sensitive and add the rest.`;
+    `At scale: engine <b>+${((revEng/revFlat-1)*100).toFixed(0)}%</b> vs flat. Demographics alone add `+
+    `<b>+${((revPrior/revFlat-1)*100).toFixed(0)}%</b> (coverage only) &#8212; the clicks add the rest.`;
+
+  engaged={lean:false,bal:false,rich:false}; touched=false;
+  renderTests(); update();
 }
 
-document.getElementById("run").addEventListener("click", run);
+// STEP 2 \u2014 clickable test offers (the viewer is the shopper)
+function renderTests(){
+  document.getElementById("tests").innerHTML = TESTS.map(o=>{ const on=engaged[o.key];
+    return `<div class="test ${on?"yes":""}" role="button" tabindex="0" data-k="${o.key}" aria-pressed="${on}">
+      <div class="tn">${o.name}</div><div class="tc">cov ${covpct(o.cov)}% &#183; $${o.premium}</div>
+      <div class="tp">$${o.premium}</div>
+      <div class="resp ${on?"":"q"}">${on?"&#10003; you'd take this":"tap if you'd take it"}</div></div>`; }).join("");
+  document.querySelectorAll(".test").forEach(el=>{
+    const tog=()=>{ engaged[el.dataset.k]=!engaged[el.dataset.k]; touched=true; renderTests(); update(); };
+    el.addEventListener("click", tog);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); tog(); } });
+  });
+}
+
+// STEPS 3 & 4 \u2014 confirm the persona from the viewer's clicks, then price them (live)
+function update(){
+  const prior=PRIOR, flatPrem=costPrice(STD_COV);
+  bars(document.getElementById("prior"), prior);
+  if(!touched){
+    bars(document.getElementById("post"), prior);
+    document.getElementById("verdict").innerHTML = `&#8593; Click the offers above that you'd actually take &#8212; the read and your quote update live.`;
+    document.getElementById("foff_c").textContent = "your quote";
+    document.getElementById("foff_p").innerHTML = `&#8212;`;
+    document.getElementById("foff_m").innerHTML = `pick some offers first`;
+    document.getElementById("personal").innerHTML = "";
+    return;
+  }
+  const resp=TESTS.map(o=>({...o, interested:engaged[o.key]}));
+  const post={}; let Z=0;
+  for(const q of ["price","balanced","coverage"]){ let L=1;
+    for(const o of resp){ const pc=pBuy(q,o.premium,o.cov); L*= o.interested?pc:(1-pc); }
+    post[q]=prior[q]*L; Z+=post[q]; }
+  for(const q in post) post[q]/=Z;
+  bars(document.getElementById("post"), post);
+  const conf=argmax(post), took=resp.filter(o=>o.interested).map(o=>o.name.toLowerCase());
+  document.getElementById("verdict").innerHTML =
+    `You'd take the <b>${took.join(" & ")||"none of the"}</b> offer${took.length===1?"":"s"} &#8594; `+
+    `reads <b class="${conf}">${NAME[conf]}</b> (${Math.round(post[conf]*100)}% sure, up from ${Math.round(prior[conf]*100)}%).`;
+
+  const eng=engineOffer(conf);
+  document.getElementById("foff_c").textContent = `coverage ${covpct(eng.cov)}%`;
+  document.getElementById("foff_p").innerHTML = `$${eng.premium}<small>/yr</small>`;
+  document.getElementById("foff_m").innerHTML = eng.premium<flatPrem
+    ? `priced <b>down</b> to win you` : eng.cov>STD_COV ? `<b>more coverage</b>, you'll pay` : `tuned to you`;
+  let personal;
+  if(conf==="price") personal = `Reading you as price-driven, the engine quotes <b>you</b> <b>$${eng.premium}</b> &#8212; a flat $${flatPrem} risks losing you to a cheaper competitor.`;
+  else if(conf==="coverage") personal = `Reading you as coverage-driven, the engine quotes <b>you</b> <b>$${eng.premium}</b> for richer cover &#8212; a flat $${flatPrem} would leave about <b>$${eng.premium-flatPrem}</b> on the table.`;
+  else personal = `Reading you as balanced, the engine quotes <b>you</b> <b>$${eng.premium}</b> &#8212; close to market, tuned to what you'll accept.`;
+  document.getElementById("personal").innerHTML = personal;
+}
+
+document.getElementById("run").addEventListener("click", setCell);
 document.getElementById("rand").addEventListener("click", ()=>{
   const pick=s=>{ s.selectedIndex=Math.floor(Math.random()*s.options.length); };
-  pick(age); pick(home); pick(car); run(); });
-[age,home,car].forEach(s=>s.addEventListener("change", run));
+  pick(age); pick(home); pick(car); setCell(); });
+[age,home,car].forEach(s=>s.addEventListener("change", setCell));
 
 document.getElementById("foot").innerHTML =
   `<b>Step 1 is real:</b> the lookalike mix and coverage come from 96,882 Allstate shoppers, bucketed by age, `+
@@ -264,5 +288,5 @@ document.getElementById("foot").innerHTML =
   `buyers-only, so conversion can't be observed). The point: demographics warm-start the coverage, but only the `+
   `clicks find the price-sensitive. Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
 
-run();
+setCell();
 </script>
