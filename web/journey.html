@@ -64,8 +64,9 @@
   @media (max-width:600px){ .offers { grid-template-columns:1fr; } .form .fpill{min-width:0;} }
   .off { position:relative; border:1.5px solid var(--rule); border-radius:12px; padding:14px; text-align:center; background:var(--card2);
          transition:border-color .25s, box-shadow .25s, transform .25s, opacity .25s; }
-  .off .on { font-weight:660; font-size:15px; } .off .oc { font-family:var(--mono); font-size:11px; color:var(--ink3); margin:3px 0 8px; }
-  .off .obar { height:7px; border-radius:4px; background:var(--rule); overflow:hidden; margin-bottom:8px; }
+  .off .on { font-weight:660; font-size:15px; } .off .oc { font-family:var(--mono); font-size:11.5px; color:var(--ink2); margin:4px 0 8px; }
+  .off .oc2 { font-family:var(--mono); font-size:9.5px; color:var(--ink3); margin:6px 0 8px; line-height:1.35; min-height:26px; }
+  .off .obar { height:7px; border-radius:4px; background:var(--rule); overflow:hidden; margin-bottom:0; }
   .off .obar>i { display:block; height:100%; background:var(--engine); border-radius:4px; }
   .off .op { font-family:var(--mono); font-weight:800; font-size:20px; }
   .off.lead { border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 16%,transparent); }
@@ -151,8 +152,15 @@ function pBuy(q,premium,cov){ const p=PERSONA[q],ref=costPrice(STD_COV);
   return 1/(1+Math.exp(-(0.6+p.covTaste*(cov-STD_COV)-p.priceElast*(premium-ref)/100))); }
 function engineOffer(q){ let best=null; for(const cov of [6,10,15]) for(let m=-20;m<=90;m+=10){
   const premium=costPrice(cov)+m,pc=pBuy(q,premium,cov),rev=pc*premium; if(!best||rev>best.rev) best={cov,premium,pc,rev}; } return best; }
-const OFF={ lean:{key:"lean",name:"Lean",cov:6}, bal:{key:"bal",name:"Balanced",cov:10}, rich:{key:"rich",name:"Rich",cov:15} };
+// realistic auto-insurance tiers (limits/deductibles are illustrative; the dataset
+// encodes coverage as option levels A-G, not dollar amounts). cov = internal index.
+const OFF={
+  lean:{key:"lean",name:"Basic",cov:6, limits:"$25K / $50K liability", extra:"liability only &#183; $1,000 deductible"},
+  bal:{key:"bal",name:"Standard",cov:10, limits:"$100K / $300K liability", extra:"+ comprehensive & collision &#183; $500 ded"},
+  rich:{key:"rich",name:"Full",cov:15, limits:"$250K / $500K liability", extra:"+ full comp/collision &#183; $250 ded &#183; roadside"},
+};
 for(const k in OFF) OFF[k].premium=costPrice(OFF[k].cov);
+function covTier(pct){ return pct<=46?"leaner, near-state-minimum limits":pct>=62?"high limits ($250K+ / full cover)":"standard limits ($100K/$300K)"; }
 
 // two scripted shoppers, each backed by a REAL demographic cell + a true persona
 const SHOPPERS={
@@ -225,8 +233,9 @@ function render(){
     return `<div class="off ${st}">
       <span class="flag lead">engine opens here</span><span class="flag take">clicked</span>
       <span class="flag pass">skipped</span><span class="flag steer">steered here</span>
-      <div class="on">${o.name}</div><div class="oc">cov ${covpct(o.cov)}%</div>
-      <div class="obar"><i style="width:${covpct(o.cov)}%"></i></div><div class="op">$${price}</div></div>`;}).join("")+`</div>`;
+      <div class="on">${o.name}</div><div class="oc">${o.limits}</div>
+      <div class="obar"><i style="width:${covpct(o.cov)}%"></i></div>
+      <div class="oc2">${o.extra}</div><div class="op">$${price}<small>/yr</small></div></div>`;}).join("")+`</div>`;
 
   const gaugeHTML=(post,label)=>`<div class="gaugewrap"><div class="gl"><span>price-driven</span><span>coverage-driven</span></div>
     <div class="gauge"><div class="mk" style="left:${gauge(post)}%"></div></div><div class="readnow">${label}</div></div>`;
@@ -246,18 +255,18 @@ function render(){
   } else if(beat===2){
     const startCov=clamp(Math.round(s.cell.avg_cov/100*COVMAX),4,COVMAX);
     const opener=[["lean",6],["bal",10],["rich",15]].reduce((a,b)=>Math.abs(b[1]-startCov)<Math.abs(a[1]-startCov)?b:a)[0];
-    cap.innerHTML=`The engine finds <b>${s.cell.n.toLocaleString()}</b> real shoppers like ${s.name} &#8212; they bought about
-      <b>${s.cell.avg_cov}%</b> coverage. It <b>opens</b> with a matching bundle, at the standard price.`;
+    cap.innerHTML=`The engine finds <b>${s.cell.n.toLocaleString()}</b> real shoppers like ${s.name} &#8212; they mostly bought
+      <b>${covTier(s.cell.avg_cov)}</b>. It <b>opens</b> with a matching quote, at the standard price.`;
     stage.innerHTML=`<div class="steplab">Step 2 &#183; opening offer, from lookalikes</div>
-      <div class="lookup"><span><b>${s.cell.n.toLocaleString()}</b> lookalikes</span><span>avg <b>${s.cell.avg_cov}%</b> coverage</span>
+      <div class="lookup"><span><b>${s.cell.n.toLocaleString()}</b> lookalikes</span><span>typically bought <b>${covTier(s.cell.avg_cov)}</b></span>
       <span>price-driven share <b>${Math.round(s.cell.prior.price*100)}%</b> &#8212; can't tell from this alone</span></div>
       ${offersHTML({[opener]:"lead"})}${gaugeHTML(s.cell.prior, `Starting guess from demographics: leans ${NAME[argmax(s.cell.prior)]}.`)}`;
   } else if(beat>=3 && beat<=5){
     const ci=beat-3, c=s.clicks[ci], shown=s.clicks.slice(0,ci+1);
     const state={}; shown.forEach(x=>state[x.k]=x.take?"take":"pass");
     const post=beliefAfter(ci+1); const o=OFF[c.k];
-    cap.innerHTML=`${s.name} ${c.take?`<b>clicks the ${o.name.toLowerCase()}</b> option`:`<b>skips the ${o.name.toLowerCase()}</b> option`}
-      (cov ${covpct(o.cov)}%, $${o.premium}). ${ci===2?`The picture is clear now.`:`The engine updates its read.`}`;
+    cap.innerHTML=`${s.name} ${c.take?`<b>clicks the ${o.name} plan</b>`:`<b>skips the ${o.name} plan</b>`}
+      (${o.limits}, $${o.premium}/yr). ${ci===2?`The picture is clear now.`:`The engine updates its read.`}`;
     stage.innerHTML=`<div class="steplab">Step 3 &#183; track the clicks (${ci+1} of 3)</div>
       ${offersHTML(state)}${gaugeHTML(post, `Reading ${s.name} as <b class="${argmax(post)}">${NAME[argmax(post)]}</b> (${Math.round(post[argmax(post)]*100)}% sure).`)}`;
   } else {
@@ -266,13 +275,13 @@ function render(){
     const flatPrem=costPrice(STD_COV);
     const state={}; s.clicks.forEach(x=>state[x.k]=x.take?"take":"pass"); state[steerK]="steer";
     cap.innerHTML=`Confirmed <b class="em ${conf}">${NAME[conf]}</b>. The engine <b>steers ${s.name}</b> to the
-      ${OFF[steerK].name.toLowerCase()} plan at <b>$${eng.premium}</b> &#8212; ${conf==="price"?"a sharp price it can actually close":"richer cover she'll happily pay for"}.`;
+      <b>${OFF[steerK].name}</b> plan (${OFF[steerK].limits}) at <b>$${eng.premium}</b> &#8212; ${conf==="price"?"a sharp price it can actually close":"richer cover she'll happily pay for"}.`;
     let why = conf==="price"
       ? `A flat <b>$${flatPrem}</b> quote would have been too high &#8212; ${s.name} walks. The engine's <b>$${eng.premium}</b> keeps her.`
       : `A flat <b>$${flatPrem}</b> quote leaves about <b>$${eng.premium-flatPrem}</b> on the table &#8212; ${s.name} would have paid more.`;
     stage.innerHTML=`<div class="steplab">Step 4 &#183; steer to the right coverage &amp; close</div>
       ${offersHTML(state,{key:steerK,premium:eng.premium})}${gaugeHTML(post,`Confirmed <b class="${conf}">${NAME[conf]}</b> (${Math.round(post[conf]*100)}% sure).`)}
-      <div class="close show"><b>Sale closed &#8212;</b> <span class="big">cov ${covpct(eng.cov)}% at $${eng.premium}/yr</span>. ${why}</div>`;
+      <div class="close show"><b>Sale closed &#8212;</b> <span class="big">${OFF[steerK].name} plan (${OFF[steerK].limits}) at $${eng.premium}/yr</span>. ${why}</div>`;
   }
   renderPipe(beat);
 }
@@ -293,7 +302,9 @@ document.getElementById("foot").innerHTML=
   `The demographic lookalikes (counts, average coverage, segment mix) are <b>real</b> &#8212; from 96,882 Allstate `+
   `shoppers. Each shopper's persona and their click responses are scripted to illustrate the two ends; the conversion `+
   `model behind the steering is calibrated to the build's elasticities (the data is buyers-only, so walk-away is `+
-  `modeled). Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
+  `modeled). Coverage tiers are shown as <b>representative</b> auto limits/deductibles &#8212; the source dataset `+
+  `encodes coverage as option levels (A&#8211;G), not dollar amounts. `+
+  `Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
 
 renderWho(); render();
 </script>
