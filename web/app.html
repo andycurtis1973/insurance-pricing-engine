@@ -105,6 +105,38 @@
   .caption b { color:var(--ink); } .caption .em.price{color:var(--price);font-weight:700;} .caption .em.cov{color:var(--cov);font-weight:700;} .caption .em.bal{color:var(--bal);font-weight:700;}
   .quote.picking { border-color:var(--brand2); box-shadow:0 0 0 3px color-mix(in srgb,var(--brand2) 24%,transparent); animation:tap 1s ease infinite; }
   @keyframes tap { 0%,100%{transform:none;} 50%{transform:scale(1.015);} }
+  .analysis { margin-top:16px; background:var(--card); border:1px solid var(--rule); border-left:4px solid var(--engine); border-radius:12px; padding:16px 18px; }
+  .analysis .ah { font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--engine); font-weight:700; margin-bottom:10px; }
+  .analysis .narr { font-size:15px; color:var(--ink); min-height:46px; margin-bottom:15px; line-height:1.5; }
+  .analysis .narr b { font-weight:700; } .narr .pp{color:var(--price);} .narr .bb{color:var(--bal);} .narr .cc{color:var(--cov);}
+  .beliefs { display:flex; flex-direction:column; gap:8px; max-width:580px; }
+  .brow { display:grid; grid-template-columns:126px 1fr 46px; gap:10px; align-items:center; font-family:var(--mono); font-size:12.5px; }
+  .brow .bl { color:var(--ink2); } .brow .bp { text-align:right; color:var(--ink); font-weight:700; }
+  .brow .bt { position:relative; height:14px; background:var(--card2); border-radius:5px; overflow:hidden; }
+  .brow .bf { position:absolute; left:0; top:0; height:100%; border-radius:5px; transition:width .55s cubic-bezier(.4,1,.5,1); }
+  .bf.price{background:var(--price);} .bf.balanced{background:var(--bal);} .bf.coverage{background:var(--cov);}
+  .formula { margin-top:12px; font-family:var(--mono); font-size:11.5px; color:var(--ink3); }
+  .analysis .narr { min-height:70px; }
+  /* ---- graphical architecture loop ---- */
+  .archwrap { margin-top:20px; }
+  .archcap { font-size:16px; color:var(--ink); background:var(--card); border:1px solid var(--rule); border-left:4px solid var(--engine);
+             border-radius:10px; padding:14px 16px; margin-bottom:12px; min-height:48px; line-height:1.5; }
+  .archcap b { font-weight:700; }
+  .archmap { position:relative; width:100%; aspect-ratio:2000 / 770; background:var(--card); border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  .archmap svg.arrows { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
+  .anode { position:absolute; z-index:1; border:1.5px solid var(--rule); border-radius:10px; background:var(--card2);
+           display:flex; flex-direction:column; justify-content:center; padding:0 1.3%; opacity:.4;
+           transition:opacity .35s, box-shadow .35s, border-color .35s; overflow:hidden; }
+  .anode .an { font-weight:680; font-size:clamp(10px,1.15vw,17px); line-height:1.08; }
+  .anode .as { font-family:var(--mono); font-size:clamp(7px,.82vw,12px); color:var(--ink3); margin-top:3px; line-height:1.1; }
+  .anode.g-blue{border-top:3px solid var(--engine);} .anode.g-purple{border-top:3px solid var(--bal);}
+  .anode.g-gold{border-top:3px solid var(--gold);} .anode.g-green{border-top:3px solid var(--cov);}
+  .anode.on{opacity:1;}
+  .anode.on.g-blue{border-color:var(--engine); box-shadow:0 0 0 3px color-mix(in srgb,var(--engine) 22%,transparent);}
+  .anode.on.g-purple{border-color:var(--bal); box-shadow:0 0 0 3px color-mix(in srgb,var(--bal) 22%,transparent);}
+  .anode.on.g-gold{border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 22%,transparent);}
+  .anode.on.g-green{border-color:var(--cov); box-shadow:0 0 0 3px color-mix(in srgb,var(--cov) 22%,transparent);}
+  .alabel { position:absolute; z-index:1; font-family:var(--mono); font-size:clamp(8px,.9vw,13px); letter-spacing:.05em; text-transform:uppercase; }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
 </style>
 
@@ -138,9 +170,19 @@
       </div>
     </div>
     <div>
-      <p class="frametitle">Your architecture</p>
-      <div class="arch" id="arch"></div>
+      <p class="frametitle">What the model is doing &#183; the click analysis</p>
+      <div class="analysis" id="analysis">
+        <div class="narr" id="narr"></div>
+        <div class="beliefs" id="beliefs"></div>
+        <div class="formula">posterior &#8733; prior (real lookalikes) &#215; likelihood (each click)</div>
+      </div>
     </div>
+  </div>
+
+  <div class="archwrap">
+    <p class="frametitle">Your architecture &#8212; the streaming loop</p>
+    <div class="archcap" id="archcap"></div>
+    <div class="archmap" id="archmap"></div>
   </div>
 
   <footer id="foot"></footer>
@@ -160,115 +202,198 @@ const LEVELS=[
 const SLOPE=14;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-// ---- architecture pipeline (matches the deployment slide) ----
-const PIPE=[
-  ["decide", [["shopper","Shopper","on your site","g-blue"],
-              ["lambda","Lambda","decide & price","g-blue"],
-              ["dynamo","DynamoDB","posteriors + priors","g-purple"]]],
-  ["learn",  [["kinesis","Kinesis","click events","g-gold"],
-              ["flink","Managed Flink","update posteriors","g-gold"]]],
-  ["observe",[["sagemaker","SageMaker","nightly retrain","g-green"],
-              ["firehose","Firehose &#8594; S3","event lake","g-green"]]],
+// ---- graphical architecture loop (matches the deployment slide) ----
+// coordinates on a 2000 x 770 canvas; boxes are % divs, arrows an SVG overlay
+const AW=2000, AH=770, ABH=112;
+const BOX=[
+  {k:"shopper",  x:40,  y:170, w:255, t:"Shopper", s:"quote page", g:"g-blue"},
+  {k:"apigw",    x:345, y:170, w:270, t:"API Gateway", s:"/price request", g:"g-blue"},
+  {k:"lambda",   x:665, y:170, w:340, t:"Lambda", s:"pick & price the offer", g:"g-blue"},
+  {k:"featured", x:1055,y:170, w:270, t:"Featured offer", s:"lean / mid / rich", g:"g-blue"},
+  {k:"sagemaker",x:1425,y:170, w:535, t:"SageMaker \u00b7 nightly", s:"retrain \u2192 segments + priors", g:"g-green"},
+  {k:"dynamo",   x:665, y:360, w:340, t:"DynamoDB", s:"Thompson posteriors \u03b1,\u03b2 / segment\u00d7arm", g:"g-purple"},
+  {k:"flink",    x:295, y:558, w:320, t:"Managed Flink", s:"update the posteriors", g:"g-gold"},
+  {k:"kinesis",  x:665, y:558, w:340, t:"Kinesis Data Streams", s:"the clickstream backbone", g:"g-gold"},
+  {k:"click",    x:1055,y:558, w:270, t:"Click events", s:"shown / converted / left", g:"g-gold"},
+  {k:"firehose", x:1425,y:558, w:535, t:"Firehose \u2192 S3 \u00b7 Athena", s:"event lake \u00b7 dashboards", g:"g-green"},
 ];
+const C={mut:"var(--ink3)", blue:"var(--engine)", bal:"var(--bal)", gold:"var(--gold)", cov:"var(--cov)"};
+const ARR=[  // x1,y1,x2,y2,color,dashed
+  [300,226,343,226,C.mut], [615,226,663,226,C.mut], [1005,226,1053,226,C.mut],
+  [828,282,828,358,C.bal], [848,358,848,282,C.bal],           // lambda <-> dynamo
+  [1053,614,1007,614,C.mut], [663,614,617,614,C.mut],          // click -> kinesis -> flink
+  [470,556,700,476,C.gold],                                    // flink -> dynamo
+  [1190,282,1190,556,C.blue,1],                                // featured -> click (loop)
+  [1440,282,1010,400,C.cov,1],                                 // sagemaker -> dynamo
+  [1325,614,1423,614,C.mut],                                   // click -> firehose
+];
+function buildArchMap(){
+  const arrows = ARR.map(([x1,y1,x2,y2,c,dash])=>{
+    const ang=Math.atan2(y2-y1,x2-x1), hl=16;
+    const ax=x2-hl*Math.cos(ang), ay=y2-hl*Math.sin(ang);
+    const h1x=x2-hl*Math.cos(ang-0.4), h1y=y2-hl*Math.sin(ang-0.4), h2x=x2-hl*Math.cos(ang+0.4), h2y=y2-hl*Math.sin(ang+0.4);
+    return `<line x1="${x1}" y1="${y1}" x2="${ax}" y2="${ay}" stroke="${c}" stroke-width="3" ${dash?'stroke-dasharray="9 7"':''}/>`
+         + `<polyline points="${h1x},${h1y} ${x2},${y2} ${h2x},${h2y}" fill="none" stroke="${c}" stroke-width="3"/>`;
+  }).join("");
+  const svg=`<svg class="arrows" viewBox="0 0 ${AW} ${AH}" preserveAspectRatio="none">${arrows}
+    <text x="1250" y="415" fill="var(--ink3)" font-family="var(--mono)" font-size="26">every offer \u2192</text>
+    <text x="1250" y="448" fill="var(--ink3)" font-family="var(--mono)" font-size="26">the next click</text></svg>`;
+  const labels=`<div class="alabel" style="left:2%;top:16.5%;color:var(--engine)">Decide \u00b7 a few ms</div>
+    <div class="alabel" style="left:2%;top:66%;color:var(--gold)">Learn \u00b7 from every click</div>
+    <div class="alabel" style="left:71.2%;top:16.5%;color:var(--cov)">Observe &amp; retrain</div>`;
+  const boxes=BOX.map(b=>`<div class="anode ${b.g}" data-k="${b.k}"
+    style="left:${b.x/AW*100}%;top:${b.y/AH*100}%;width:${b.w/AW*100}%;height:${ABH/AH*100}%">
+    <div class="an">${b.t}</div><div class="as">${b.s}</div></div>`).join("");
+  el("archmap").innerHTML=svg+labels+boxes;
+}
 function renderArch(active, caption){
   const set=new Set(active);
-  el("arch").innerHTML = PIPE.map(([lane,nodes])=>
-    `<div class="lane">${lane==="decide"?"Decide &#183; a few ms":lane==="learn"?"Learn &#183; near-real-time":"Offline"}</div>`+
-    nodes.map(([k,n,s,g])=>`<div class="node ${g} ${set.has(k)?"on":""}"><span class="dot"></span><div><div class="nn">${n}</div><div class="ns">${s}</div></div></div>`).join("")
-  ).join("") + `<div class="backend" id="backend">${caption}</div>`;
+  document.querySelectorAll(".anode").forEach(n=>n.classList.toggle("on", set.has(n.dataset.k)));
+  el("archcap").innerHTML=caption;
 }
 
-// ---- the three scenarios ----
+// ---- REAL demo data: lookalike segment mix per demographic cell (from 96,882 Allstate shoppers) ----
+const LK={"25to44|owner|high":{"n":4618,"price":0.256,"balanced":0.245,"coverage":0.498,"avg_cov_pct":61.2,"avg_premium":641,"pct_cheapest":25.6,"pct_richest":63.5},"25to44|owner|low":{"n":406,"price":0.278,"balanced":0.404,"coverage":0.318,"avg_cov_pct":46.1,"avg_premium":597,"pct_cheapest":27.8,"pct_richest":38.4},"25to44|owner|mid":{"n":12154,"price":0.264,"balanced":0.263,"coverage":0.473,"avg_cov_pct":57.1,"avg_premium":625,"pct_cheapest":26.4,"pct_richest":59.6},"25to44|renter|high":{"n":3518,"price":0.225,"balanced":0.321,"coverage":0.454,"avg_cov_pct":56.4,"avg_premium":659,"pct_cheapest":22.5,"pct_richest":55.7},"25to44|renter|low":{"n":641,"price":0.268,"balanced":0.412,"coverage":0.32,"avg_cov_pct":43.1,"avg_premium":616,"pct_cheapest":26.8,"pct_richest":39.6},"25to44|renter|mid":{"n":15501,"price":0.24,"balanced":0.339,"coverage":0.421,"avg_cov_pct":53.1,"avg_premium":642,"pct_cheapest":24.0,"pct_richest":51.5},"45to64|owner|high":{"n":4430,"price":0.237,"balanced":0.235,"coverage":0.528,"avg_cov_pct":63.2,"avg_premium":631,"pct_cheapest":23.7,"pct_richest":64.8},"45to64|owner|low":{"n":661,"price":0.3,"balanced":0.369,"coverage":0.331,"avg_cov_pct":46.9,"avg_premium":591,"pct_cheapest":30.0,"pct_richest":43.3},"45to64|owner|mid":{"n":13670,"price":0.242,"balanced":0.27,"coverage":0.488,"avg_cov_pct":58.3,"avg_premium":616,"pct_cheapest":24.2,"pct_richest":60.1},"45to64|renter|high":{"n":1406,"price":0.19,"balanced":0.334,"coverage":0.476,"avg_cov_pct":56.9,"avg_premium":649,"pct_cheapest":19.0,"pct_richest":56.5},"45to64|renter|low":{"n":400,"price":0.23,"balanced":0.403,"coverage":0.367,"avg_cov_pct":42.9,"avg_premium":610,"pct_cheapest":23.0,"pct_richest":45.0},"45to64|renter|mid":{"n":6927,"price":0.205,"balanced":0.354,"coverage":0.441,"avg_cov_pct":52.3,"avg_premium":633,"pct_cheapest":20.5,"pct_richest":51.8},"65plus|owner|high":{"n":2446,"price":0.224,"balanced":0.238,"coverage":0.538,"avg_cov_pct":66.7,"avg_premium":628,"pct_cheapest":22.4,"pct_richest":64.3},"65plus|owner|low":{"n":354,"price":0.302,"balanced":0.328,"coverage":0.37,"avg_cov_pct":49.7,"avg_premium":601,"pct_cheapest":30.2,"pct_richest":45.8},"65plus|owner|mid":{"n":9014,"price":0.252,"balanced":0.252,"coverage":0.496,"avg_cov_pct":61.8,"avg_premium":620,"pct_cheapest":25.2,"pct_richest":61.1},"65plus|renter|high":{"n":372,"price":0.185,"balanced":0.315,"coverage":0.5,"avg_cov_pct":59.9,"avg_premium":642,"pct_cheapest":18.5,"pct_richest":56.2},"65plus|renter|mid":{"n":2466,"price":0.214,"balanced":0.319,"coverage":0.467,"avg_cov_pct":56.4,"avg_premium":630,"pct_cheapest":21.4,"pct_richest":55.0},"under25|owner|high":{"n":823,"price":0.271,"balanced":0.247,"coverage":0.482,"avg_cov_pct":61.3,"avg_premium":658,"pct_cheapest":27.1,"pct_richest":61.8},"under25|owner|low":{"n":242,"price":0.343,"balanced":0.397,"coverage":0.26,"avg_cov_pct":44.5,"avg_premium":621,"pct_cheapest":34.3,"pct_richest":36.0},"under25|owner|mid":{"n":4099,"price":0.287,"balanced":0.303,"coverage":0.41,"avg_cov_pct":55.4,"avg_premium":646,"pct_cheapest":28.7,"pct_richest":52.4},"under25|renter|high":{"n":1434,"price":0.25,"balanced":0.344,"coverage":0.406,"avg_cov_pct":55.1,"avg_premium":668,"pct_cheapest":25.0,"pct_richest":50.9},"under25|renter|low":{"n":625,"price":0.275,"balanced":0.434,"coverage":0.291,"avg_cov_pct":41.7,"avg_premium":633,"pct_cheapest":27.5,"pct_richest":36.5},"under25|renter|mid":{"n":10675,"price":0.267,"balanced":0.361,"coverage":0.372,"avg_cov_pct":51.8,"avg_premium":654,"pct_cheapest":26.7,"pct_richest":46.5}};
+// REAL segment coverage + price elasticity (from results/rundata.json)
+const SEG={ price:{cov:53.0,elast:2.1}, balanced:{cov:50.5,elast:1.22}, coverage:{cov:62.0,elast:0.53} };
+const PERS=["price","balanced","coverage"];
+const PNAME={price:"price-driven",balanced:"balanced",coverage:"coverage-driven"};
+const PCLS ={price:"pp",balanced:"bb",coverage:"cc"};
+// likelihood of each click under each persona - calibrated to match the segments' revealed behaviour
+const L1={ price:{save:.62,match:.28,protect:.10}, balanced:{save:.28,match:.45,protect:.27}, coverage:{save:.10,match:.30,protect:.60} };
+const L2={ price:{lower:.70,keep:.22,add:.08},      balanced:{lower:.30,keep:.45,add:.25},      coverage:{lower:.10,keep:.28,add:.62} };
+const CUSTOPT=[ {k:"lower",side:"save",   t:"Raise deductible to $1,000", s:"save $30/yr"},
+                {k:"keep", side:"match",  t:"Keep standard $500 deductible", s:"no change"},
+                {k:"add",  side:"protect",t:"Add roadside &amp; rental", s:"+$18/yr"} ];
+const CUSTVERB={lower:"raised their deductible to save more", keep:"kept the standard deductible", add:"added roadside &amp; rental"};
+
+// each scenario is anchored to a REAL demographic cell -> its prior is the real lookalike mix
 const SCEN=[
-  {key:"price",cls:"price",label:"Price-sensitive",
-    profile:{age:"18-24",home:"No",car:"Economy",covIdx:3,prem:720}, click:"save",
+  {key:"price",cls:"price",label:"Price-sensitive", cell:"under25|renter|low",
+    profile:{age:"18-24",home:"No",car:"Economy",covIdx:3,prem:690}, click1:"save", cust:"lower",
     who:"a young renter watching every dollar"},
-  {key:"neutral",cls:"bal",label:"Neutral",
-    profile:{age:"25-44",home:"Yes",car:"Mid-range",covIdx:3,prem:660}, click:"match",
-    who:"a steady shopper who just wants fair value"},
-  {key:"coverage",cls:"cov",label:"Maximize coverage",
-    profile:{age:"45-64",home:"Yes",car:"Premium",covIdx:3,prem:640}, click:"protect",
-    who:"a homeowner who wants full protection for the family"},
+  {key:"neutral",cls:"bal",label:"Neutral", cell:"25to44|owner|mid",
+    profile:{age:"25-44",home:"Yes",car:"Mid-range",covIdx:3,prem:660}, click1:"match", cust:"keep",
+    who:"a homeowner who just wants fair value"},
+  {key:"coverage",cls:"cov",label:"Maximize coverage", cell:"45to64|owner|high",
+    profile:{age:"45-64",home:"Yes",car:"Premium",covIdx:3,prem:650}, click1:"protect", cust:"add",
+    who:"a homeowner who wants full protection"},
 ];
-const NB=4; let si=0, beat=0, timer=null;
-const fmt=n=>"$"+Math.round(n);
+const NB=5; let si=0, beat=0, timer=null;
+const fmt=n=>"$"+Math.round(n), pct=x=>Math.round(x*100);
+const dom=p=>PERS.reduce((a,b)=>p[a]>=p[b]?a:b);
+
+function priorOf(sc){ const c=LK[sc.cell]||LK["25to44|owner|mid"]; return {price:c.price,balanced:c.balanced,coverage:c.coverage,n:c.n,avg_cov:c.avg_cov_pct}; }
+function posterior(sc, upto){
+  const prior=priorOf(sc), post={}; let Z=0;
+  for(const q of PERS){ let L=prior[q];
+    if(upto>=1) L*=L1[q][sc.click1];
+    if(upto>=2) L*=L2[q][sc.cust];
+    post[q]=L; Z+=L; }
+  for(const q in post) post[q]/=Z; return post;
+}
 
 function optionsFor(p){
-  const c=LEVELS[p.covIdx], prem=p.prem;
-  const s=Math.max(0,p.covIdx-1), u=Math.min(LEVELS.length-1,p.covIdx+1);
-  return {
-    save:{key:"save",lv:LEVELS[s],prem:p.covIdx===0?prem-24:prem+(LEVELS[s].cov-c.cov)*SLOPE-10,tag:"Lower your rate"},
-    match:{key:"match",lv:c,prem:prem-20,tag:"Same cover, switch & save"},
-    protect:{key:"protect",lv:LEVELS[u],prem:prem+(LEVELS[u].cov-c.cov)*SLOPE,tag:"Step up your protection"},
-  };
+  const c=LEVELS[p.covIdx], prem=p.prem, s=Math.max(0,p.covIdx-1), u=Math.min(LEVELS.length-1,p.covIdx+1);
+  return { save:{key:"save",lv:LEVELS[s],prem:p.covIdx===0?prem-24:prem+(LEVELS[s].cov-c.cov)*SLOPE-10,tag:"Lower your rate"},
+           match:{key:"match",lv:c,prem:prem-20,tag:"Same cover, switch & save"},
+           protect:{key:"protect",lv:LEVELS[u],prem:prem+(LEVELS[u].cov-c.cov)*SLOPE,tag:"Step up your protection"} };
 }
-function refineFor(sc){
-  const o=optionsFor(sc.profile), pick=o[sc.click];
-  if(sc.click==="save")   return {lv:pick.lv, prem:pick.prem-25, was:pick.prem, persona:"price-driven"};
-  if(sc.click==="protect"){ const up=LEVELS[Math.min(LEVELS.length-1,sc.profile.covIdx+2)]; return {lv:up, prem:pick.prem+27, was:null, persona:"coverage-driven"}; }
-  return {lv:pick.lv, prem:pick.prem-12, was:pick.prem, persona:"balanced"};
+// the REFINED offer is computed from the posterior: dominant persona sets the direction,
+// its confidence sets the magnitude, and the real elasticity caps it.
+function refined(sc,o,post){
+  const pick=o[sc.click1], d=dom(post);
+  if(d==="price"){ const disc=Math.round(post.price*90);  // more confident -> bigger discount (they're elastic)
+    return {lv:pick.lv, prem:pick.prem-disc, was:pick.prem, persona:"price", mag:"-$"+disc}; }
+  if(d==="coverage"){ const up=LEVELS[Math.min(LEVELS.length-1, sc.profile.covIdx+2)];
+    const add=Math.round((up.cov-pick.lv.cov)*SLOPE);
+    return {lv:up, prem:pick.prem+add, was:null, persona:"coverage", mag:"+"+fmt(add)+" for more cover"}; }
+  const cred=Math.round(post.balanced*25);
+  return {lv:pick.lv, prem:pick.prem-cred, was:pick.prem, persona:"balanced", mag:"-$"+cred+" loyalty"};
 }
 
 const selOpts=(arr,val)=>arr.map(x=>`<option ${x===val?"selected":""}>${x}</option>`).join("");
-function formHTML(p){
-  return `<div class="screen"><h2>Get your auto quote</h2><p class="sub">Tell us about you and what you have today.</p>
-    <div class="grid2">
-      <div class="fld"><label>Age</label><select>${selOpts(["18-24","25-44","45-64","65+"],p.age)}</select></div>
-      <div class="fld"><label>Homeowner?</label><select>${selOpts(["Yes","No"],p.home)}</select></div>
-      <div class="fld"><label>Vehicle value</label><select>${selOpts(["Economy","Mid-range","Premium"],p.car)}</select></div>
-      <div class="fld"><label>Current coverage</label><select>${LEVELS.map((l,i)=>`<option ${i===p.covIdx?"selected":""}>${l.name}</option>`).join("")}</select></div>
-      <div class="fld" style="grid-column:1 / -1"><label>Current premium ($/yr)</label><input class="txt" type="number" value="${p.prem}"></div>
-    </div><button class="cta">See my quotes &#8594;</button></div>`;
-}
+function formHTML(p){ return `<div class="screen"><h2>Get your auto quote</h2><p class="sub">Tell us about you and what you have today.</p>
+  <div class="grid2">
+    <div class="fld"><label>Age</label><select>${selOpts(["18-24","25-44","45-64","65+"],p.age)}</select></div>
+    <div class="fld"><label>Homeowner?</label><select>${selOpts(["Yes","No"],p.home)}</select></div>
+    <div class="fld"><label>Vehicle value</label><select>${selOpts(["Economy","Mid-range","Premium"],p.car)}</select></div>
+    <div class="fld"><label>Current coverage</label><select>${LEVELS.map((l,i)=>`<option ${i===p.covIdx?"selected":""}>${l.name}</option>`).join("")}</select></div>
+    <div class="fld" style="grid-column:1 / -1"><label>Current premium ($/yr)</label><input class="txt" type="number" value="${p.prem}"></div>
+  </div><button class="cta">See my quotes &#8594;</button></div>`; }
 function optionsHTML(o,pick){
-  const card=(x)=>`<div class="quote ${x.key} ${pick===x.key?"picking":""}">
-    <div class="qn">${x.lv.name}</div><div class="ql">${x.lv.lim}</div>
+  const card=(x)=>`<div class="quote ${x.key} ${pick===x.key?"picking":""}"><div class="qn">${x.lv.name}</div><div class="ql">${x.lv.lim}</div>
     <div class="qtag"><div class="qp">${fmt(x.prem)}<small>/yr</small></div><div class="qpick">${pick===x.key?"clicking...":"Select &#8594;"}</div></div>
     <div class="ql" style="grid-column:1 / -1; color:var(--ink3)">${x.tag}</div></div>`;
-  return `<div class="screen"><h2>Three quotes for you</h2><p class="sub">Pick the one you'd actually go with - your choice tells us what matters.</p>
+  return `<div class="screen"><h2>Three quotes for you</h2><p class="sub">Pick the one you'd actually go with.</p>
     <div class="quotes">${card(o.save)}${card(o.match)}${card(o.protect)}</div></div>`;
+}
+function customizeHTML(sc,o){
+  const pick=o[sc.click1];
+  const card=(x)=>`<div class="quote ${x.side} ${sc.cust===x.k?"picking":""}"><div class="qn">${x.t}</div><div class="ql">${x.s}</div>
+    <div class="qtag"><div class="qpick">${sc.cust===x.k?"clicking...":"Select &#8594;"}</div></div></div>`;
+  return `<div class="screen"><h2>Customize your ${pick.lv.name}</h2><p class="sub">One more choice &#8212; it tells us even more about you.</p>
+    <div class="quotes">${CUSTOPT.map(card).join("")}</div></div>`;
 }
 function refinedHTML(r,sc){
   let why;
-  if(sc.click==="save") why=`You went for the cheapest option - you're <b>price-driven</b>. The engine sharpens the rate to <b>beat what you pay now</b> and keep you from clicking away.`;
-  else if(sc.click==="protect") why=`You reached for more protection - you'll pay for value. The engine offers the <b>full package</b> (roadside &amp; rental) for a little more, and you take it.`;
-  else why=`You took the middle - <b>balanced</b>. The engine holds a fair, competitive rate and adds a small <b>loyalty credit</b> to close the switch.`;
-  return `<div class="screen"><h2>One last step - tailored to you</h2><p class="sub">Based on what you picked, here's your best rate.</p>
-    <div class="refined"><div class="rtag">Your tailored quote</div>
-      <div class="rn">${r.lv.name}</div><div class="rl">${r.lv.lim}</div>
+  if(r.persona==="price") why=`Two price signals - the posterior is <b>price-driven</b>. The engine scales the discount to its confidence and keeps your coverage: <b>${r.mag}</b> to beat your current rate.`;
+  else if(r.persona==="coverage") why=`You reached for cover twice - <b>coverage-driven</b>, and the low elasticity says you'll pay. The engine steps you up to the <b>full package</b> (${r.mag}).`;
+  else why=`You stayed in the middle - <b>balanced</b>. The engine holds a fair rate and adds a small posterior-scaled <b>loyalty credit</b> (${r.mag}).`;
+  return `<div class="screen"><h2>One last step &#8212; tailored to you</h2><p class="sub">Priced from your posterior, not a fixed rule.</p>
+    <div class="refined"><div class="rtag">Your tailored quote</div><div class="rn">${r.lv.name}</div><div class="rl">${r.lv.lim}</div>
       <div class="rp">${r.was?`<span class="was">${fmt(r.was)}</span>`:""}${fmt(r.prem)}<small style="font-size:14px;font-weight:400;color:var(--ink3)">/yr</small></div>
       <div class="rwhy">${why}</div></div><button class="cta">Lock this rate</button></div>`;
 }
+function beliefBars(post){
+  return PERS.map(k=>`<div class="brow"><span class="bl">${PNAME[k]}</span><span class="bt"><i class="bf ${k}" style="width:${pct(post[k])}%"></i></span><span class="bp">${pct(post[k])}%</span></div>`).join("");
+}
 
 function render(){
-  const sc=SCEN[si], p=sc.profile, o=optionsFor(sc.profile), r=refineFor(sc), emc=sc.cls;
+  const sc=SCEN[si], p=sc.profile, o=optionsFor(sc.profile), emc=sc.cls;
+  const pr=priorOf(sc), p0=posterior(sc,0), p1=posterior(sc,1), p2=posterior(sc,2);
+  const r=refined(sc,o,p2), d=r.persona, dc=PCLS[d];
   el("tabs").innerHTML=SCEN.map((s,i)=>`<button class="tab ${s.cls} ${i===si?"on":""}" data-i="${i}"><span class="num">${i+1}</span>${s.label}</button>`).join("");
   document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{ stop(); si=+b.dataset.i; beat=0; render(); }));
   el("beat").innerHTML=Array.from({length:NB},(_,k)=>`<i class="${k<=beat?"on":""}"></i>`).join("");
-  const cap=el("caption");
+  const cap=el("caption"), narr=el("narr"), beliefs=el("beliefs");
+
   if(beat===0){
-    cap.innerHTML=`Scenario ${si+1} of 3 - <b class="em ${emc}">${sc.label}</b>. Meet ${sc.who}. They enter their details and current <b>${LEVELS[p.covIdx].name}</b> policy at <b>${fmt(p.prem)}</b>.`;
+    cap.innerHTML=`Scenario ${si+1} of 3 &#8212; <b class="em ${emc}">${sc.label}</b>. Meet ${sc.who}. They enter their details and current <b>${LEVELS[p.covIdx].name}</b> policy at <b>${fmt(p.prem)}</b>.`;
     el("site").innerHTML=formHTML(p);
-    renderArch(["shopper"], `A customer is on your site, entering details. Nothing to decide yet - just listening.`);
+    renderArch(["shopper"], `A customer is on your site, entering details.`);
+    narr.innerHTML=`<b>No clicks yet.</b> The model has nothing to analyze - a blank slate.`;
+    beliefs.innerHTML=beliefBars({price:0,balanced:0,coverage:0});
   } else if(beat===1){
-    cap.innerHTML=`The site returns <b>three quotes</b>. Which one they click is the signal.`;
+    cap.innerHTML=`The site returns <b>three quotes</b>. Which one they click is the first signal.`;
     el("site").innerHTML=optionsHTML(o,null);
-    renderArch(["lambda","dynamo","sagemaker"], `Details hit <b>API Gateway</b>. <b>Lambda</b> pulls <b>lookalike priors</b> (trained nightly by <b>SageMaker</b>, held in <b>DynamoDB</b>) and returns three quotes.`);
+    renderArch(["apigw","lambda","dynamo","sagemaker","featured"], `Details hit <b>API Gateway</b>. <b>Lambda</b> pulls the <b>real lookalike prior</b> for this cell (SageMaker-trained, in DynamoDB) and returns three quotes.`);
+    narr.innerHTML=`<b>Prior from ${pr.n.toLocaleString()} REAL lookalikes</b> (${sc.profile.age}, ${sc.profile.home==="Yes"?"homeowner":"renter"}, ${sc.profile.car.toLowerCase()} car): <span class="pp">${pct(p0.price)}% price</span> / <span class="bb">${pct(p0.balanced)}% balanced</span> / <span class="cc">${pct(p0.coverage)}% coverage</span>. Weak - demographics can't tell who'll walk on price.`;
+    beliefs.innerHTML=beliefBars(p0);
   } else if(beat===2){
-    const pick=o[sc.click];
-    cap.innerHTML=`They reach for <b>${pick.lv.name} (${fmt(pick.prem)})</b> - ${sc.click==="save"?"the cheapest option":sc.click==="protect"?"the richest cover":"the middle option"}. <span class="em ${emc}">Click.</span>`;
-    el("site").innerHTML=optionsHTML(o,sc.click);
-    renderArch(["shopper","kinesis"], `Their <b>click</b> becomes an event on <b>Kinesis</b> - the clickstream backbone.`);
+    const pick=o[sc.click1];
+    cap.innerHTML=`They click <b>${pick.lv.name} (${fmt(pick.prem)})</b> - ${sc.click1==="save"?"the cheapest":sc.click1==="protect"?"the richest":"the middle"} option. <span class="em ${emc}">Click 1.</span>`;
+    el("site").innerHTML=optionsHTML(o,sc.click1);
+    renderArch(["shopper","click","kinesis"], `<b>Click 1</b> becomes an event on <b>Kinesis</b> - the clickstream backbone.`);
+    narr.innerHTML=`They picked the <b>${pick.lv.name}</b> quote and passed the others. A <b class="${dc}">${PNAME[d]}</b> shopper does that most often, so the belief moves: <b class="${dc}">${PNAME[d]} ${pct(p0[d])}% &#8594; ${pct(p1[d])}%</b>.`;
+    beliefs.innerHTML=beliefBars(p1);
+  } else if(beat===3){
+    cap.innerHTML=`On the customize step they <b>${CUSTVERB[sc.cust]}</b>. <span class="em ${emc}">Click 2.</span>`;
+    el("site").innerHTML=customizeHTML(sc,o);
+    renderArch(["kinesis","flink","dynamo"], `<b>Click 2</b> streams in; <b>Managed Flink</b> folds both clicks into the posteriors in <b>DynamoDB</b>.`);
+    narr.innerHTML=`A second signal the same way - they <b>${CUSTVERB[sc.cust]}</b>. The belief sharpens: <b class="${dc}">${PNAME[d]} ${pct(p1[d])}% &#8594; ${pct(p2[d])}%</b>.`;
+    beliefs.innerHTML=beliefBars(p2);
   } else {
-    cap.innerHTML=`The engine reads <b class="em ${emc}">${r.persona}</b> and refines the offer: <b>${r.lv.name} at ${fmt(r.prem)}</b> - ${sc.click==="save"?"a sharper rate that keeps them":sc.click==="protect"?"the full package they'll pay for":"a fair rate plus a loyalty credit"}.`;
+    cap.innerHTML=`Confident (<b class="em ${emc}">${PNAME[d]}, ${pct(p2[d])}%</b>), the engine enhances the offer from the <b>posterior</b>: <b>${r.lv.name} at ${fmt(r.prem)}</b> (${r.mag}).`;
     el("site").innerHTML=refinedHTML(r,sc);
-    renderArch(["kinesis","flink","dynamo","lambda","firehose"], `<b>Flink</b> folded the click into the model (<b>${r.persona}</b>) in <b>DynamoDB</b>; <b>Lambda</b> set the <b>dynamic price</b> in milliseconds; <b>Firehose</b> logged it to <b>S3</b>.`);
+    renderArch(["lambda","dynamo","firehose","featured"], `<b>Lambda</b> reads the sharpened posterior from <b>DynamoDB</b> and prices from it (elasticity ${SEG[d].elast}); <b>Firehose</b> logs to <b>S3</b>.`);
+    narr.innerHTML=`The <b>posterior itself sets the offer</b>: <b class="${dc}">${pct(p2[d])}% ${PNAME[d]}</b> &#215; the real segment elasticity (${SEG[d].elast}) &#8594; <b>${r.mag}</b>. Not a fixed rule - the more sure it is, the further it moves.`;
+    beliefs.innerHTML=beliefBars(p2);
   }
 }
-
 function advance(){ if(beat<NB-1){beat++;return true;} if(si<SCEN.length-1){si++;beat=0;return true;} return false; }
 function tick(){ if(!advance()){ stop(); } else render(); }
-function play(){ if(timer){ stop(); return; } if(si===SCEN.length-1&&beat===NB-1){ si=0; beat=0; render(); } el("play").innerHTML="&#10074;&#10074; Pause"; timer=setInterval(tick, 2300); }
+function play(){ if(timer){ stop(); return; } if(si===SCEN.length-1&&beat===NB-1){ si=0; beat=0; render(); } el("play").innerHTML="&#10074;&#10074; Pause"; timer=setInterval(tick, 2500); }
 function stop(){ if(timer) clearInterval(timer); timer=null; el("play").innerHTML="&#9654; Play all three"; }
 function step(){ stop(); if(advance()) render(); }
 el("play").addEventListener("click",play);
@@ -276,11 +401,10 @@ el("next").addEventListener("click",step);
 el("restart").addEventListener("click",()=>{ stop(); si=0; beat=0; render(); });
 
 el("foot").innerHTML=
-  `The customer inputs and the coverage&#8596;price options are a working front-end; the architecture is the real ` +
-  `deployment shape. Grounded in data: the <b>coverage&#8596;price trade-off</b> (price moved with coverage 78% of ` +
-  `the time in 97,009 Allstate sessions) and the lookalike priors. Current policy is a customer input; whether they ` +
-  `accept the refined offer is a modeled response. Not real quotes. ` +
-  `Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
-
-render();
+  `<b>The prior is real</b> - the starting belief is the actual segment mix for the customer's demographic cell, ` +
+  `from 96,882 Allstate shoppers. The <b>elasticities that set the price</b> (price-driven -2.1, coverage-driven ` +
+  `-0.53) and the coverage&#8596;price slope are from the build. The per-click likelihoods are calibrated to the ` +
+  `segments' revealed behaviour, and acceptance is modeled. The refined offer is computed from the posterior, not a ` +
+  `fixed script. Not real quotes. Code: <a href="https://github.com/andycurtis1973/insurance-pricing-engine">github.com/andycurtis1973/insurance-pricing-engine</a>.`;
+buildArchMap(); render();
 </script>
