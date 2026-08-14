@@ -24,7 +24,7 @@
   .lede { font-size:15px; color:var(--ink2); margin:0; max-width:96ch; }
   .lede b { color:var(--ink); font-weight:600; }
 
-  .frames { display:grid; grid-template-columns:1.15fr .85fr; gap:18px; margin-top:22px; align-items:start; }
+  .frames { display:grid; grid-template-columns:0.82fr 1.18fr; gap:18px; margin-top:22px; align-items:start; }
   @media (max-width:820px){ .frames { grid-template-columns:1fr; } }
   .frametitle { font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink3); margin:0 0 8px; }
 
@@ -122,12 +122,12 @@
   .archcap { font-size:16px; color:var(--ink); background:var(--card); border:1px solid var(--rule); border-left:4px solid var(--engine);
              border-radius:10px; padding:14px 16px; margin-bottom:12px; min-height:48px; line-height:1.5; }
   .archcap b { font-weight:700; }
-  .archmap { position:relative; width:100%; aspect-ratio:2000 / 770; background:var(--card); border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  .archmap { position:relative; width:100%; aspect-ratio:2000 / 560; margin:0 auto; background:var(--card); border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
   .archmap svg.arrows { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
   .anode { position:absolute; z-index:1; border:1.5px solid var(--rule); border-radius:10px; background:var(--card2);
            display:flex; flex-direction:column; justify-content:center; padding:0 1.3%; opacity:.4;
            transition:opacity .35s, box-shadow .35s, border-color .35s; overflow:hidden; }
-  .anode .an { font-weight:680; font-size:clamp(10px,1.15vw,17px); line-height:1.08; }
+  .anode .an { font-weight:680; font-size:clamp(9px,1.05vw,15px); line-height:1.05; }
   .anode .as { font-family:var(--mono); font-size:clamp(7px,.82vw,12px); color:var(--ink3); margin-top:3px; line-height:1.1; }
   .anode.g-blue{border-top:3px solid var(--engine);} .anode.g-purple{border-top:3px solid var(--bal);}
   .anode.g-gold{border-top:3px solid var(--gold);} .anode.g-green{border-top:3px solid var(--cov);}
@@ -176,13 +176,10 @@
         <div class="beliefs" id="beliefs"></div>
         <div class="formula">posterior &#8733; prior (real lookalikes) &#215; likelihood (each click)</div>
       </div>
+      <p class="frametitle" style="margin-top:16px">Your architecture &#8212; the streaming loop</p>
+      <div class="archcap" id="archcap"></div>
+      <div class="archmap" id="archmap"></div>
     </div>
-  </div>
-
-  <div class="archwrap">
-    <p class="frametitle">Your architecture &#8212; the streaming loop</p>
-    <div class="archcap" id="archcap"></div>
-    <div class="archmap" id="archmap"></div>
   </div>
 
   <footer id="foot"></footer>
@@ -204,28 +201,28 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ---- graphical architecture loop (matches the deployment slide) ----
 // coordinates on a 2000 x 770 canvas; boxes are % divs, arrows an SVG overlay
-const AW=2000, AH=770, ABH=112;
+const AW=2000, AH=560, ABH=92;
 const BOX=[
-  {k:"shopper",  x:40,  y:170, w:255, t:"Shopper", s:"quote page", g:"g-blue"},
-  {k:"apigw",    x:345, y:170, w:270, t:"API Gateway", s:"/price request", g:"g-blue"},
-  {k:"lambda",   x:665, y:170, w:340, t:"Lambda", s:"pick & price the offer", g:"g-blue"},
-  {k:"featured", x:1055,y:170, w:270, t:"Featured offer", s:"lean / mid / rich", g:"g-blue"},
-  {k:"sagemaker",x:1425,y:170, w:535, t:"SageMaker \u00b7 nightly", s:"retrain \u2192 segments + priors", g:"g-green"},
-  {k:"dynamo",   x:665, y:360, w:340, t:"DynamoDB", s:"Thompson posteriors \u03b1,\u03b2 / segment\u00d7arm", g:"g-purple"},
-  {k:"flink",    x:295, y:558, w:320, t:"Managed Flink", s:"update the posteriors", g:"g-gold"},
-  {k:"kinesis",  x:665, y:558, w:340, t:"Kinesis Data Streams", s:"the clickstream backbone", g:"g-gold"},
-  {k:"click",    x:1055,y:558, w:270, t:"Click events", s:"shown / converted / left", g:"g-gold"},
-  {k:"firehose", x:1425,y:558, w:535, t:"Firehose \u2192 S3 \u00b7 Athena", s:"event lake \u00b7 dashboards", g:"g-green"},
+  {k:"shopper",  x:40,  y:90,  w:255, t:"Shopper", s:"", g:"g-blue"},
+  {k:"apigw",    x:345, y:90,  w:270, t:"API GW", s:"", g:"g-blue"},
+  {k:"lambda",   x:665, y:90,  w:340, t:"Lambda", s:"", g:"g-blue"},
+  {k:"featured", x:1055,y:90,  w:270, t:"Offer", s:"", g:"g-blue"},
+  {k:"sagemaker",x:1425,y:90,  w:535, t:"SageMaker", s:"nightly", g:"g-green"},
+  {k:"dynamo",   x:665, y:248, w:340, t:"DynamoDB", s:"posteriors", g:"g-purple"},
+  {k:"flink",    x:295, y:420, w:320, t:"Flink", s:"", g:"g-gold"},
+  {k:"kinesis",  x:665, y:420, w:340, t:"Kinesis", s:"", g:"g-gold"},
+  {k:"click",    x:1055,y:420, w:270, t:"Clicks", s:"", g:"g-gold"},
+  {k:"firehose", x:1425,y:420, w:535, t:"Firehose", s:"S3/Athena", g:"g-green"},
 ];
 const C={mut:"var(--ink3)", blue:"var(--engine)", bal:"var(--bal)", gold:"var(--gold)", cov:"var(--cov)"};
 const ARR=[  // x1,y1,x2,y2,color,dashed
-  [300,226,343,226,C.mut], [615,226,663,226,C.mut], [1005,226,1053,226,C.mut],
-  [828,282,828,358,C.bal], [848,358,848,282,C.bal],           // lambda <-> dynamo
-  [1053,614,1007,614,C.mut], [663,614,617,614,C.mut],          // click -> kinesis -> flink
-  [470,556,700,476,C.gold],                                    // flink -> dynamo
-  [1190,282,1190,556,C.blue,1],                                // featured -> click (loop)
-  [1440,282,1010,400,C.cov,1],                                 // sagemaker -> dynamo
-  [1325,614,1423,614,C.mut],                                   // click -> firehose
+  [300,136,343,136,C.mut], [615,136,663,136,C.mut], [1005,136,1053,136,C.mut],
+  [828,182,828,246,C.bal], [848,246,848,182,C.bal],            // lambda <-> dynamo
+  [1053,466,1007,466,C.mut], [663,466,617,466,C.mut],          // click -> kinesis -> flink
+  [460,420,700,342,C.gold],                                    // flink -> dynamo
+  [1190,182,1190,418,C.blue,1],                                // featured -> click (loop)
+  [1450,182,1010,300,C.cov,1],                                 // sagemaker -> dynamo
+  [1325,466,1423,466,C.mut],                                   // click -> firehose
 ];
 function buildArchMap(){
   const arrows = ARR.map(([x1,y1,x2,y2,c,dash])=>{
@@ -236,14 +233,14 @@ function buildArchMap(){
          + `<polyline points="${h1x},${h1y} ${x2},${y2} ${h2x},${h2y}" fill="none" stroke="${c}" stroke-width="3"/>`;
   }).join("");
   const svg=`<svg class="arrows" viewBox="0 0 ${AW} ${AH}" preserveAspectRatio="none">${arrows}
-    <text x="1250" y="415" fill="var(--ink3)" font-family="var(--mono)" font-size="26">every offer \u2192</text>
-    <text x="1250" y="448" fill="var(--ink3)" font-family="var(--mono)" font-size="26">the next click</text></svg>`;
-  const labels=`<div class="alabel" style="left:2%;top:16.5%;color:var(--engine)">Decide \u00b7 a few ms</div>
-    <div class="alabel" style="left:2%;top:66%;color:var(--gold)">Learn \u00b7 from every click</div>
-    <div class="alabel" style="left:71.2%;top:16.5%;color:var(--cov)">Observe &amp; retrain</div>`;
+    <text x="1235" y="298" fill="var(--ink3)" font-family="var(--mono)" font-size="26">every offer \u2192</text>
+    <text x="1235" y="329" fill="var(--ink3)" font-family="var(--mono)" font-size="26">the next click</text></svg>`;
+  const labels=`<div class="alabel" style="left:2%;top:2.5%;color:var(--engine)">Decide \u00b7 a few ms</div>
+    <div class="alabel" style="left:2%;top:63%;color:var(--gold)">Learn \u00b7 every click</div>
+    <div class="alabel" style="left:71.2%;top:2.5%;color:var(--cov)">Observe &amp; retrain</div>`;
   const boxes=BOX.map(b=>`<div class="anode ${b.g}" data-k="${b.k}"
     style="left:${b.x/AW*100}%;top:${b.y/AH*100}%;width:${b.w/AW*100}%;height:${ABH/AH*100}%">
-    <div class="an">${b.t}</div><div class="as">${b.s}</div></div>`).join("");
+    <div class="an">${b.t}</div>${b.s?`<div class="as">${b.s}</div>`:""}</div>`).join("");
   el("archmap").innerHTML=svg+labels+boxes;
 }
 function renderArch(active, caption){
