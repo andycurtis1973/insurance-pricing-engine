@@ -21,7 +21,16 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "video"))
 import render as R                       # noqa: E402  (helpers, data, slide builders)
 from render import (W, H, BG, TX, MUT, DIM, CARD, RULE, ENGINE, PRICE, COV, BAL, GOLD,  # noqa
-                    T, font, base, abox, C, CM, SG, EN, BD, PD, CD)
+                    T, font, base, abox, card, C, CM, SG, EN, BD, PD, CD)
+from PIL import ImageDraw
+
+
+def _footer(img, n, total):
+    """A slim footer rule with the talk title and a page number."""
+    d = ImageDraw.Draw(img, "RGBA")
+    d.line([110, H - 66, W - 110, H - 66], fill=RULE, width=1)
+    T(d, (110, H - 48), "PRICING TO THE CUSTOMER, NOT THE AVERAGE", font("mono", 18), DIM)
+    T(d, (W - 110, H - 48), f"{n:02d} / {total:02d}", font("mono", 18), DIM, "ra")
 
 SLIDES = ROOT / "deck" / "slides"
 SLIDES.mkdir(parents=True, exist_ok=True)
@@ -52,7 +61,7 @@ def w_agenda():
              ("See it live, then ship it", "the interactive demo, then AWS")]
     for i, (t, s) in enumerate(items):
         y = 296 + i * 104
-        d.rounded_rectangle([110, y, 1810, y + 86], radius=10, fill=CARD, outline=RULE, width=1)
+        card(d, [110, y, 1810, y + 86], side=ENGINE, radius=10)
         T(d, (152, y + 24), str(i + 1), font("bold", 36), ENGINE)
         T(d, (224, y + 16), t, font("bold", 31), TX)
         T(d, (224, y + 54), s, font("reg", 24), MUT)
@@ -83,7 +92,7 @@ def w_data():
     x0, cw = 110, 410
     for i, (b, s) in enumerate(facts):
         x = x0 + i * (cw + 16)
-        d.rounded_rectangle([x, 330, x + cw, 468], radius=10, fill=CARD, outline=RULE)
+        card(d, [x, 330, x + cw, 468], accent=ENGINE, radius=10)
         T(d, (x + 28, 360), b, font("bold", 52), TX)
         T(d, (x + 28, 434), s.upper(), font("mono", 21), DIM)
     bl = [("Each shopper views real quotes — a 7-part coverage bundle (A–G) at a real premium — and buys one.", ENGINE),
@@ -141,8 +150,7 @@ def w_calibration():
               ("coverage_driven", "Coverage-driven", COV)]
     for i, (k, lab, col) in enumerate(labels):
         x = 110 + i * 470
-        d.rounded_rectangle([x, 336, x + 440, 452], radius=10, fill=CARD, outline=RULE)
-        d.rounded_rectangle([x, 336, x + 440, 342], radius=3, fill=col)
+        card(d, [x, 336, x + 440, 452], accent=col, radius=10)
         T(d, (x + 26, 360), lab, font("bold", 28), TX)
         T(d, (x + 26, 402), f"arc elasticity  {arcs[k]:.1f}", font("mono", 26), col)
     # the sweep
@@ -167,8 +175,7 @@ def w_calibration():
 
 
 def _numbox(d, x, y, w, h, n, title, sub, col):
-    d.rounded_rectangle([x, y, x + w, y + h], radius=12, fill=CARD, outline=RULE, width=1)
-    d.rounded_rectangle([x, y, x + w, y + 7], radius=3, fill=col)
+    card(d, [x, y, x + w, y + h], accent=col, radius=12)
     d.ellipse([x + 24, y + 28, x + 70, y + 74], fill=col)
     T(d, (x + 47, y + 51), str(n), font("bold", 28), (15, 18, 24), "mm")
     T(d, (x + 24, y + 98), title, font("bold", 29), TX)
@@ -188,7 +195,7 @@ def w_loop():
         _numbox(d, x, y, w, h, i + 1, t, s, col)
         if i < 3:
             T(d, (x + w + gap / 2, y + h / 2), "→", font("bold", 40), DIM, "mm")
-    d.rounded_rectangle([110, 596, 1810, 700], radius=12, fill=CARD, outline=GOLD, width=2)
+    card(d, [110, 596, 1810, 700], accent=GOLD, radius=12)
     T(d, (150, 616), "THE CATCH", font("mono", 22), GOLD)
     T(d, (150, 650), "Demographics guess the coverage. Only the clicks find who'll walk on price.",
       font("bold", 34), TX)
@@ -207,8 +214,7 @@ def w_three():
     w, gap, x0, y, h = 550, 24, 110, 300, 566
     for i, (nm, persona, demo, col, tier, limits, price, delta, why) in enumerate(cards):
         x = x0 + i * (w + gap)
-        d.rounded_rectangle([x, y, x + w, y + h], radius=14, fill=CARD, outline=RULE, width=1)
-        d.rounded_rectangle([x, y, x + w, y + 8], radius=4, fill=col)
+        card(d, [x, y, x + w, y + h], accent=col, radius=14)
         T(d, (x + 30, y + 38), nm, font("bold", 44), TX)
         T(d, (x + 30, y + 104), persona, font("mono", 21), col)
         T(d, (x + 30, y + 142), demo, font("reg", 22), MUT)
@@ -264,8 +270,7 @@ def w_takeaways():
     for i, (t, s, col) in enumerate(cards):
         cx = 110 + (i % 2) * 862
         cy = 320 + (i // 2) * 288
-        d.rounded_rectangle([cx, cy, cx + 826, cy + 252], radius=12, fill=CARD, outline=RULE)
-        d.rounded_rectangle([cx, cy, cx + 8, cy + 252], radius=3, fill=col)
+        card(d, [cx, cy, cx + 826, cy + 252], side=col, radius=12)
         T(d, (cx + 36, cy + 34), t, font("bold", 32), TX)
         # wrap the body to ~34 chars/line
         words, line, lines = s.split(), "", []
@@ -304,8 +309,7 @@ def w_thanks():
 
 
 def _statcard(d, x, y, w, h, big, label, src, col):
-    d.rounded_rectangle([x, y, x + w, y + h], radius=12, fill=CARD, outline=RULE, width=1)
-    d.rounded_rectangle([x, y, x + w, y + 7], radius=3, fill=col)
+    card(d, [x, y, x + w, y + h], accent=col, radius=12)
     T(d, (x + 30, y + 30), big, font("bold", 68), col)
     words, line, lines = label.split(), "", []
     for wd in words:
@@ -331,7 +335,7 @@ def w_clickgap():
     w, gap, x0, y, h = 553, 20, 110, 344, 316
     for i, (big, lab, src, col) in enumerate(cards):
         _statcard(d, x0 + i * (w + gap), y, w, h, big, lab, src, col)
-    d.rounded_rectangle([110, 700, 1810, 858], radius=12, fill=CARD, outline=ENGINE, width=2)
+    card(d, [110, 700, 1810, 858], accent=ENGINE, radius=12)
     T(d, (150, 722), "THE GAP", font("mono", 22), ENGINE)
     T(d, (150, 758), "Every session already reveals who's price-shopping and who's trading up.",
       font("bold", 31), TX)
@@ -365,8 +369,7 @@ def w_opportunity():
     T(d, (130, 862), "McKinsey  ·  DemandSage 2026  ·  Clickstream 2026", font("mono", 20), DIM)
     # right: the worked example (this build)
     x = 990
-    d.rounded_rectangle([x, 340, 1810, 862], radius=14, fill=CARD, outline=ENGINE, width=2)
-    d.rounded_rectangle([x, 340, 1810, 348], radius=4, fill=ENGINE)
+    card(d, [x, 340, 1810, 862], accent=ENGINE, radius=14)
     T(d, (x + 36, 372), "IN THIS BUILD  ·  INSURANCE, THE WORKED EXAMPLE", font("mono", 22), ENGINE)
     lift = EN["lift_vs_compete_pct"]
     st = EN["strategies"]
@@ -395,7 +398,7 @@ def w_demo():
       font("reg", 28), MUT)
     # left frame: what the customer sees
     lx, ly, lw, lh = 110, 322, 820, 452
-    d.rounded_rectangle([lx, ly, lx + lw, ly + lh], radius=14, fill=CARD, outline=RULE, width=1)
+    card(d, [lx, ly, lx + lw, ly + lh], radius=14)
     T(d, (lx + 28, ly + 22), "WHAT THE CUSTOMER SEES", font("mono", 20), DIM)
     d.rounded_rectangle([lx + 28, ly + 60, lx + lw - 28, ly + 104], radius=8, fill=BG, outline=RULE)
     T(d, (lx + 48, ly + 72), "quicksure-auto.com/quote", font("mono", 22), MUT)
@@ -410,7 +413,7 @@ def w_demo():
         T(d, (lx + lw - 58, ry + 24), pr, font("bold", 34), col, "ra")
     # right frame: what the model is doing
     rx, ry0, rw, rh = 970, 322, 840, 452
-    d.rounded_rectangle([rx, ry0, rx + rw, ry0 + rh], radius=14, fill=CARD, outline=ENGINE, width=2)
+    card(d, [rx, ry0, rx + rw, ry0 + rh], accent=ENGINE, radius=14)
     T(d, (rx + 28, ry0 + 22), "WHAT THE MODEL IS DOING  ·  THE CLICK ANALYSIS", font("mono", 20), ENGINE)
     beliefs = [("price-driven", 0.68, PRICE), ("balanced", 0.20, BAL), ("coverage-driven", 0.12, COV)]
     for i, (nm, v, col) in enumerate(beliefs):
@@ -559,7 +562,10 @@ def main() -> int:
 
     for i, (builder, notes) in enumerate(DECK):
         png = SLIDES / f"slide_{i:02d}.png"
-        builder().save(png)
+        img = builder()
+        if 0 < i < len(DECK) - 1:          # every content slide but the title and the close
+            _footer(img, i + 1, len(DECK))
+        img.save(png)
         slide = prs.slides.add_slide(blank)
         slide.shapes.add_picture(str(png), 0, 0, width=prs.slide_width, height=prs.slide_height)
         slide.notes_slide.notes_text_frame.text = notes
