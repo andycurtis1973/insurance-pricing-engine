@@ -210,7 +210,7 @@ const BOX=[
   {k:"sagemaker",x:1425,y:90,  w:535, t:"SageMaker", s:"nightly", g:"g-green"},
   {k:"dynamo",   x:665, y:248, w:340, t:"DynamoDB", s:"posteriors", g:"g-purple"},
   {k:"flink",    x:295, y:420, w:320, t:"Flink", s:"", g:"g-gold"},
-  {k:"kinesis",  x:665, y:420, w:340, t:"Kinesis", s:"", g:"g-gold"},
+  {k:"kinesis",  x:665, y:420, w:340, t:"Kinesis/MSK", s:"", g:"g-gold"},
   {k:"click",    x:1055,y:420, w:270, t:"Clicks", s:"", g:"g-gold"},
   {k:"firehose", x:1425,y:420, w:535, t:"Firehose", s:"S3/Athena", g:"g-green"},
 ];
@@ -371,7 +371,7 @@ function render(){
     const pick=o[sc.click1];
     cap.innerHTML=`They click <b>${pick.lv.name} (${fmt(pick.prem)})</b> - ${sc.click1==="save"?"the cheapest":sc.click1==="protect"?"the richest":"the middle"} option. <span class="em ${emc}">Click 1.</span>`;
     el("site").innerHTML=optionsHTML(o,sc.click1);
-    renderArch(["shopper","click","kinesis"], `<b>Click 1</b> becomes an event on <b>Kinesis</b> - the clickstream backbone.`);
+    renderArch(["shopper","click","kinesis"], `<b>Click 1</b> becomes an event on <b>Kinesis/MSK</b> - the clickstream backbone.`);
     narr.innerHTML=`They picked the <b>${pick.lv.name}</b> quote and passed the others. A <b class="${dc}">${PNAME[d]}</b> shopper does that most often, so the belief moves: <b class="${dc}">${PNAME[d]} ${pct(p0[d])}% &#8594; ${pct(p1[d])}%</b>.`;
     beliefs.innerHTML=beliefBars(p1);
   } else if(beat===3){
